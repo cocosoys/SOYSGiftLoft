@@ -19,11 +19,7 @@ import soys.soysgiftloft.storage.DataStorage;
 import soys.soysgiftloft.storage.StorageManager;
 import soys.soysgiftloft.util.ColorUtil;
 
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * 礼品阁核心管理器：礼包加载、在线时长统计、领取与发放逻辑。
