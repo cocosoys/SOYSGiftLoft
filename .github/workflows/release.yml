@@ -9,6 +9,8 @@ on:
 jobs:
   build-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -16,7 +18,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up JDK 8
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '8'
           distribution: 'temurin'
@@ -34,9 +36,8 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ steps.get_version.outputs.VERSION }}
-          generate_release_notes: true  # 自动生成变更日志
+          generate_release_notes: true
           files: |
             target/*.jar
         env:
-          # 仓库内置token，无需自己配置密钥
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
