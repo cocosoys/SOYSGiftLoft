@@ -1,0 +1,95 @@
+# ============================================
+# SOYSGiftLoft English language file (lang/en.yml)
+# All messages support & color codes (auto-translated to Minecraft colors)
+# Placeholders use %key% form, replaced by command logic
+# ============================================
+
+# Message prefix (can be prepended to messages manually, not auto-attached by default)
+prefix: "&b[GiftLoft] &r"
+
+# General prompts
+no-permission: "&cYou do not have permission to run this command."
+no-permission-detail: "&cYou do not have permission to run this command (requires node: %perm%)"
+player-only: "&cThis command can only be run by a player."
+
+# Reload
+reload-success: "&aConfiguration reloaded, gift packs loaded: %count%"
+
+# Gift pack queries
+pack-not-found: "&cGift pack not found: %pack%"
+not-unlocked: "&cYou have not unlocked gift pack %pack%, cannot claim."
+not-unlocked-reasons: "&7Unmet unlock conditions:"
+condition-line: "&7 - %text%"
+
+# Claim results
+already-claimed: "&eYou have already claimed gift pack %pack%."
+# Shown when a periodic pack is still on cooldown, %time% is remaining time until next claim
+already-claimed-cooldown: "&eGift pack %pack% is on cooldown, time until next claim: %time%"
+no-item-space: "&cNot enough inventory space (need %need% slots, have %have%), cannot claim."
+claimed: "&aSuccessfully claimed gift pack %pack%!"
+# Sent server-wide when claim effects broadcast is enabled
+claim-broadcast: "&b[GiftLoft] &e%player% &aclaimed gift pack &6%pack%&a!"
+
+# Auto-unlock notification (sent by a scheduled task when a player meets unlock conditions)
+# Chat message
+notify-unlock: "&b[GiftLoft] &aA new gift pack is available! &e%pack% &7- %desc%"
+# Title (main)
+notify-title: "&aNew gift available"
+# Title (subtitle)
+notify-subtitle: "&e%pack% &7- use /sgiftloft claim %id%"
+
+# Admin operations
+admin-gave: "&aGranted gift pack %pack% to player %player%."
+admin-gave-fail: "&cFailed to grant gift pack %pack% to player %player%: %reason%"
+admin-reset: "&aReset claim state of gift pack %pack% for player %player%."
+player-offline: "&cPlayer %player% is not online, cannot operate."
+
+# List display
+list-header: "&b=== GiftLoft Pack List ==="
+list-format: "&8[%state%&8] &e%pack% &7- %desc%"
+
+# State text
+state-locked: "&cLocked"
+state-available: "&aAvailable"
+state-claimed: "&7Claimed"
+
+# Info display
+info-header: "&b=== Gift Pack %pack% Details ==="
+info-desc: "&7Description: %desc%"
+info-conditions: "&7Unlock conditions:"
+info-rewards: "&7Rewards:"
+info-reward-money: "&7 - Money: %value%"
+info-reward-points: "&7 - Points: %value%"
+info-reward-item: "&7 - Item: %amount% x %material%"
+info-reward-command: "&7 - Command: %value%"
+info-reward-exp: "&7 - EXP: %value% %unit%"
+info-reward-potion: "&7 - Potion: %effect% &7lv %amplifier% (%duration%s)"
+info-reward-custom: "&7 - Custom item: %plugin%:%id% x%amount%"
+info-reward-random: "&7 - Random pool: draw %rolls%x (%count% entries)"
+
+# Custom item grant failure notice (does not abort the rest of the claim)
+custom-item-failed: "&cFailed to give custom item: %plugin%:%id%"
+
+# Storage migration
+migrate-usage: "&cUsage: /sgiftloft migrate <target backend> [source backend] &7(backends: yaml / mysql / sqlite)"
+migrate-invalid-backend: "&cUnknown backend: %backend% &7(available: yaml / mysql / sqlite)"
+migrate-same: "&cSource and target backend are the same (%backend%), migration not needed."
+migrate-backend-disabled: "&cBackend %backend% is not enabled in config.yml, cannot migrate."
+migrate-start: "&aMigrating data: %from% &7→&a %to% &7(running in background…)"
+migrate-done: "&aMigration complete: %from% &7→&a %to%, %count% players written."
+migrate-fail: "&cMigration failed (%from% → %to%): %reason%"
+
+# Check display
+check-format: "&7Gift pack %pack% status: %state%"
+
+# Help text
+help:
+  - "&b==== SOYSGiftLoft Command Help ===="
+  - "&e/sgiftloft list &7- View claimable gift packs"
+  - "&e/sgiftloft info <id> &7- View gift pack details"
+  - "&e/sgiftloft check <id> &7- Check gift pack unlock status"
+  - "&e/sgiftloft claim <id> &7- Claim a gift pack"
+  - "&e/sgiftloft reload &7- (Admin: soysgiftloft.admin.reload) Reload config"
+  - "&e/sgiftloft give <player> <id> &7- (Admin: soysgiftloft.admin.give) Force grant"
+  - "&e/sgiftloft reset <player> <id> &7- (Admin: soysgiftloft.admin.reset) Reset claim state"
+  - "&e/sgiftloft migrate <backend> [source] &7- (Admin: soysgiftloft.admin.migrate) Migrate data"

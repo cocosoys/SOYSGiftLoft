@@ -1,0 +1,383 @@
+# ============================================================
+#               礼包定义文件
+#  每个礼包由以下部分组成：
+#    display            : 显示名称（支持颜色代码 &）
+#    description        : 一句话描述（用于列表展示）
+#    unlock-conditions  : 解锁条件列表（需“全部满足”才解锁）
+#    rewards            : 奖励列表（领取时依次发放）
+#
+#  ---- 解锁条件类型（type）----
+#   PLAYTIME  : 累计在线时长（秒）。value: 秒数
+#   PERMISSION: 拥有某权限节点。value: 权限节点
+#   POINTS    : 点券余额 ≥ 数值。value: 点券数
+#   MONEY     : 金币余额 ≥ 数值。value: 金币数
+#   PLACEHOLDER: 解析某占位符后做数值比较（可对接其他插件的击杀/成就/统计）。
+#                placeholder: 占位符文本
+#                operator  : >  >=  <  <=  ==  !=
+#                value     : 比较的数值
+#   DATE      : 在指定日期区间内可领取（节日礼包）。
+#                start     : 起始时间，格式 yyyy-MM-dd 或 yyyy-MM-dd HH:mm:ss（留空=无下限）
+#                end       : 结束时间，同上（留空=无上限）
+#   ONLINE_DAYS: 累计在线满 N 天。value: 天数（按累计在线秒数 / 86400 计）
+#   JOIN_DAYS : 加入服务器满 N 天。value: 天数（取玩家首次游玩时间）
+#   STAT      : 直接读取 Bukkit 内置统计（击杀/死亡/挖掘/行走/合成等）。
+#                stat     : 统计项名（Statistic 枚举名，如 MOB_KILLS / PLAYER_KILLS / DEATHS）
+#                entity   : 实体维度（EntityType，可选，如 ZOMBIE）
+#                material : 材料维度（Material，可选，如 STONE）
+#                operator : > >= < <= == !=
+#                value    : 比较的数值
+#   PERMGROUP : 属于某权限组。value: 组名（按 LuckPerms/PEX 约定检查 group.<组名> 权限）
+#   WORLD     : 身处指定世界之一。value: 世界名，多个用逗号分隔
+#   GAMEMODE  : 游戏模式为指定之一。value: 模式名（SURVIVAL/CREATIVE/ADVENTURE/SPECTATOR），多个用逗号分隔
+#
+#  ---- 复合逻辑（与/或分组）----
+#   unlock-conditions 支持两种写法：
+#   1) 旧式扁平列表 —— 所有条件「全部满足」(AND)：
+#        unlock-conditions:
+#          - type: PLAYTIME
+#            value: 3600
+#   2) 新式分组 —— 支持 OR 与任意层级嵌套：
+#        unlock-conditions:
+#          mode: OR            # AND 或 OR
+#          list:
+#            - type: MONEY
+#              value: 1000
+#            - type: POINTS
+#              value: 500
+#            - mode: AND        # 嵌套子组
+#              list:
+#                - type: PERMISSION
+#                  value: foo.bar
+#
+#  ---- 奖励类型（type）----
+#   MONEY  : 发放金币。value: 金额
+#   POINTS : 发放点券。value: 点券数
+#   ITEM   : 发放物品。material/amount/name/lore/enchant
+#   COMMAND: 执行指令。value: 指令（%player% 会被替换为玩家名）
+#            console: true 以控制台执行，false 以玩家身份执行
+#   EXP    : 发放经验。value: 经验点数；levels: true 时 value 解释为经验等级
+#   POTION : 发放药水效果。
+#            effect   : 药水效果名（PotionEffectType 枚举名，如 SPEED）
+#            duration : 持续秒数
+#            amplifier: 等级（0=I，1=II，以此类推）
+#            ambient  : 是否为环境效果（半透明粒子），默认 false
+#            particles: 是否显示粒子，默认 true
+#   CUSTOM_ITEM: 发放第三方插件自定义物品（ItemsAdder / Oraxen / MMOCore / MMOItems）。
+#            plugin  : ITEMSADDER / ORAXEN / MMOCORE / MMOITEMS
+#            id      : 物品 id（ItemsAdder/Oraxen 的 namespaced id；MMOItems 的物品 id）
+#            amount  : 数量，默认 1
+#            mmo-type: 仅 MMOItems 需要，物品类型（如 SWORD）
+#            注意：插件未安装或物品不存在时仅告警，不中断整体领取。
+#   RANDOM : 随机奖励（权重抽奖）。按权重从 pool 中抽 rolls 次。
+#            rolls   : 抽取次数，默认 1
+#            replace : 同一次抽取是否放回（true=可重复抽中同项），默认 true
+#            pool    : 候选列表，每项 {weight: 权重, reward: 嵌套奖励}
+#                      reward 可再次为 RANDOM，支持任意层级嵌套
+#
+#  ---- 领取模式（claim-mode，默认 ONCE）----
+#   ONCE    : 一次性，领取后永久不可再领
+#   DAILY   : 每日礼包，滚动 24 小时窗口后可再次领取
+#   WEEKLY  : 每周礼包，滚动 7 天窗口后可再次领取
+#   MONTHLY : 每月礼包，滚动 30 天窗口后可再次领取
+#   COOLDOWN: 自定义冷却，配合 cooldown（秒）字段使用
+#
+#  ---- 领取特效（claim-effects，可选）----
+#   不配置则回退到 config.yml 的 general.default-claim-effects
+#   sound          : 音效名（Sound 枚举名或自定义声音）
+#   volume/pitch   : 音量与音调
+#   particle       : 粒子枚举名
+#   particle-count : 粒子数量
+#   broadcast      : 是否全服广播领取消息
+# ============================================================
+
+giftpacks:
+
+  # 示例1：新人礼包——累计在线 1 小时即可领取（一次性）
+  welcome:
+    display: "&a新人礼包"
+    description: "累计在线 1 小时即可领取"
+    claim-mode: ONCE
+    unlock-conditions:
+      - type: PLAYTIME
+        value: 3600
+    rewards:
+      - type: MONEY
+        value: 1000
+      - type: POINTS
+        value: 50
+      - type: ITEM
+        material: DIAMOND
+        amount: 2
+        name: "&b欢迎钻石"
+        lore:
+          - "&7感谢你来到服务器！"
+    claim-effects:
+      sound: "ENTITY_PLAYER_LEVELUP"
+      volume: 1.0
+      pitch: 1.0
+      particle: "VILLAGER_HAPPY"
+      particle-count: 20
+
+  # 示例2：VIP 礼包——需持有权限节点 soysgiftloft.pack.vip（一次性）
+  vip:
+    display: "&6VIP 专属礼包"
+    description: "持有 soysgiftloft.pack.vip 权限可领取"
+    claim-mode: ONCE
+    unlock-conditions:
+      - type: PERMISSION
+        value: soysgiftloft.pack.vip
+    rewards:
+      - type: MONEY
+        value: 5000
+      - type: ITEM
+        material: DIAMOND_SWORD
+        amount: 1
+        name: "&6VIP 之刃"
+        enchant:
+          - "DAMAGE_ALL:3"
+          - "FIRE_ASPECT:1"
+
+  # 示例3：富豪礼包——点券与金币双门槛（一次性）
+  rich:
+    display: "&e富豪礼包"
+    description: "点券≥200 且 金币≥10000 可领取"
+    claim-mode: ONCE
+    unlock-conditions:
+      - type: POINTS
+        value: 200
+      - type: MONEY
+        value: 10000
+    rewards:
+      - type: ITEM
+        material: ENDER_CHEST
+        amount: 1
+        name: "&e便携储物箱"
+
+  # 示例4：等级礼包——依赖 PlaceholderAPI 解析的变量（如统计插件等级）
+  level10:
+    display: "&d等级达人礼包"
+    description: "服务器等级达到 10 级可领取"
+    claim-mode: ONCE
+    unlock-conditions:
+      - type: PLACEHOLDER
+        placeholder: "%playerstats_level%"   # 请替换为你实际使用的占位符
+        operator: ">="
+        value: 10
+    rewards:
+      - type: POINTS
+        value: 100
+
+  # 示例5：每日签到礼包——每天可领取一次（DAILY 滚动 24h 窗口）
+  daily:
+    display: "&b每日签到"
+    description: "每天可领取一次的小奖励"
+    claim-mode: DAILY
+    unlock-conditions:
+      - type: PERMISSION
+        value: soysgiftloft.use
+    rewards:
+      - type: MONEY
+        value: 500
+      - type: POINTS
+        value: 10
+    claim-effects:
+      sound: "ENTITY_EXPERIENCE_ORB_PICKUP"
+      particle: "SPELL_WITCH"
+      particle-count: 24
+      broadcast: false
+
+  # 示例6：周礼包——每周可领取一次（WEEKLY 滚动 7 天窗口）
+  weekly:
+    display: "&3每周豪礼"
+    description: "每周可领取一次的丰厚奖励"
+    claim-mode: WEEKLY
+    unlock-conditions:
+      - type: PLAYTIME
+        value: 25200   # 7 小时
+    rewards:
+      - type: MONEY
+        value: 3000
+      - type: ITEM
+        material: GOLDEN_APPLE
+        amount: 3
+    claim-effects:
+      sound: "UI_TOAST_CHALLENGE_COMPLETE"
+      particle: "FIREWORKS_SPARK"
+      particle-count: 30
+      broadcast: true
+
+  # 示例7：自定义冷却礼包——每 6 小时可领取一次（COOLDOWN + cooldown 秒数）
+  cooldown6h:
+    display: "&5小憩礼包"
+    description: "每 6 小时可领取一次"
+    claim-mode: COOLDOWN
+    cooldown: 21600   # 6 * 3600 秒
+    unlock-conditions:
+      - type: PERMISSION
+        value: soysgiftloft.use
+    rewards:
+      - type: MONEY
+        value: 200
+      - type: ITEM
+        material: BREAD
+        amount: 16
+
+  # 示例8：圣诞节日礼包——仅在 2026-12-24 ~ 2026-12-26 期间可领取（DATE）
+  christmas:
+    display: "&c圣诞礼包"
+    description: "圣诞限定，节日期间可领"
+    claim-mode: ONCE
+    unlock-conditions:
+      - type: DATE
+        start: "2026-12-24"
+        end: "2026-12-26"
+    rewards:
+      - type: ITEM
+        material: NETHER_STAR
+        amount: 1
+        name: "&c圣诞之星"
+
+  # 示例9：老玩家礼包——加入服务器满 30 天（JOIN_DAYS）且累计在线满 10 天（ONLINE_DAYS）
+  veteran:
+    display: "&e老玩家礼包"
+    description: "入驻满 30 天且累计在线满 10 天"
+    claim-mode: ONCE
+    unlock-conditions:
+      - type: JOIN_DAYS
+        value: 30
+      - type: ONLINE_DAYS
+        value: 10
+    rewards:
+      - type: POINTS
+        value: 300
+
+  # 示例10：猎手礼包——击杀僵尸满 100 只（STAT + entity 维度）
+  hunter:
+    display: "&a猎手礼包"
+    description: "累计击杀僵尸 ≥ 100"
+    claim-mode: ONCE
+    unlock-conditions:
+      - type: STAT
+        stat: KILL_ENTITY_BY          # 注意：1.12.2 中实体击杀统计枚举名为 KILL_ENTITY_BY
+        entity: ZOMBIE
+        operator: ">="
+        value: 100
+    rewards:
+      - type: ITEM
+        material: BOW
+        amount: 1
+
+  # 示例11：土豪 OR 礼包——金币≥10000 或 点券≥500 满足任一即可（OR 分组）
+  rich_or:
+    display: "&6土豪礼包"
+    description: "金币≥10000 或 点券≥500"
+    claim-mode: ONCE
+    unlock-conditions:
+      mode: OR
+      list:
+        - type: MONEY
+          value: 10000
+        - type: POINTS
+          value: 500
+    rewards:
+      - type: ITEM
+        material: DIAMOND_BLOCK
+        amount: 1
+
+  # 示例12：主世界建造者礼包——身处主世界（WORLD）且为生存模式（GAMEMODE），
+  #         且（金币≥5000 或 权限组 vip）的嵌套复合条件
+  builder:
+    display: "&b建造者礼包"
+    description: "主世界生存模式，且(金币≥5000 或 属vip组)"
+    claim-mode: ONCE
+    unlock-conditions:
+      - type: WORLD
+        value: world
+      - type: GAMEMODE
+        value: SURVIVAL
+      - mode: OR
+        list:
+          - type: MONEY
+            value: 5000
+          - type: PERMGROUP
+            value: vip
+    rewards:
+      - type: ITEM
+        material: ANVIL
+        amount: 1
+
+  # 示例13：升级礼包——发放经验值（EXP），levels: true 则按等级发放
+  levelup:
+    display: "&a升级助力礼包"
+    description: "领取即获得 1000 点经验"
+    claim-mode: DAILY
+    unlock-conditions:
+      - type: PERMISSION
+        value: soysgiftloft.use
+    rewards:
+      - type: EXP
+        value: 1000
+        levels: false
+
+  # 示例14：战斗增益礼包——给予 5 分钟速度 II 与 3 分钟力量 I（POTION）
+  battle_buff:
+    display: "&c战斗增益礼包"
+    description: "领取获得战斗药水增益"
+    claim-mode: ONCE
+    unlock-conditions:
+      - type: PLAYTIME
+        value: 7200
+    rewards:
+      - type: POTION
+        effect: SPEED
+        duration: 300
+        amplifier: 1
+        particles: true
+      - type: POTION
+        effect: INCREASE_DAMAGE
+        duration: 180
+        amplifier: 0
+
+  # 示例15：限定皮肤武器礼包——发放 ItemsAdder 自定义物品（CUSTOM_ITEM）
+  #         （需在服务器安装 ItemsAdder，且配置中存在该 namespaced id）
+  ia_sword:
+    display: "&6传说之刃"
+    description: "ItemsAdder 自定义武器"
+    claim-mode: ONCE
+    unlock-conditions:
+      - type: POINTS
+        value: 1000
+    rewards:
+      - type: CUSTOM_ITEM
+        plugin: ITEMSADDER
+        id: my_items:legendary_sword
+        amount: 1
+
+  # 示例16：幸运转盘礼包——权重抽奖（RANDOM）：10 抽普通、2 抽稀有、1 抽传说
+  lucky_wheel:
+    display: "&d幸运转盘"
+    description: "随机抽取一份奖励"
+    claim-mode: COOLDOWN
+    cooldown: 86400
+    unlock-conditions:
+      - type: PERMISSION
+        value: soysgiftloft.use
+    rewards:
+      - type: RANDOM
+        rolls: 1
+        replace: true
+        pool:
+          - weight: 10
+            reward:
+              type: ITEM
+              material: IRON_INGOT
+              amount: 5
+          - weight: 2
+            reward:
+              type: ITEM
+              material: GOLD_INGOT
+              amount: 3
+          - weight: 1
+            reward:
+              type: POINTS
+              value: 500

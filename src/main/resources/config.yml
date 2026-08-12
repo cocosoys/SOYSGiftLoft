@@ -1,0 +1,63 @@
+# ============================================
+# SOYSGiftLoft 主配置文件
+# 消息文本已拆分至 message.yml
+# 礼包定义见 giftpacks.yml
+# ============================================
+
+general:
+  # 调试模式
+  debug: false
+  # 语言文件标识，对应 lang/<language>.yml（内置 zh / en，可自行扩展）
+  language: "zh"
+  # 自动检测礼包解锁并提示玩家（秒），0 关闭。
+  # 开启后会按此间隔轮询在线玩家，新解锁且当前可领取的礼包会以私聊+标题提示（每个礼包仅提示一次）
+  auto-notify: 0
+  # 领取特效全局默认（礼包自身未配置 claim-effects 时回退到此）。
+  # 留空 sound/particle 且 broadcast:false 则无任何效果。可被单个礼包的 claim-effects 覆盖。
+  default-claim-effects:
+    # 音效名：Sound 枚举名（如 ENTITY_PLAYER_LEVELUP）或自定义声音（资源包）
+    sound: "ENTITY_PLAYER_LEVELUP"
+    volume: 1.0
+    pitch: 1.0
+    # 粒子枚举名（如 FLAME / VILLAGER_HAPPY / SPELL_WITCH）
+    particle: "VILLAGER_HAPPY"
+    particle-count: 16
+    particle-spread: 0.5
+    particle-speed: 0.1
+    # 是否全服广播领取消息
+    broadcast: false
+
+storage:
+  # 启用的后端按 priority 选主存储：MYSQL(30) > SQLITE(20) > YAML(10)
+  # 其余启用的后端作为辅助存储被镜像写入（热备份 / 降级方案）
+  backends:
+    mysql:
+      enabled: true
+      # 通过 url 直接建立连接，无需拆分 host / port / database
+      url: "jdbc:mysql://localhost:3306/minecraft?useSSL=false&characterEncoding=utf8&serverTimezone=UTC"
+      username: root
+      password: ""
+      table-prefix: "mc_soysgl_"
+      # 连接保活间隔（秒），0 关闭
+      keepalive-interval: 1800
+    sqlite:
+      enabled: false
+      file: "data/players.db"
+      table-prefix: "mc_soysgl_"
+    yaml:
+      enabled: true
+      file: "data/players.yml"
+      # 每次保存前备份旧文件（生成 players.yml.bak）
+      backup-on-save: false
+  # 写入镜像：主存储写成功后同步到辅助存储
+  mirror:
+    enabled: true
+    async: true
+    # 启动时把主存储全量覆盖同步到辅助存储（primary -> secondary）
+    sync-on-startup: false
+  # 内存 / 自动保存策略
+  memory:
+    # 自动保存间隔（秒），默认 300（5 分钟），0 关闭
+    auto-save-interval: 300
+  # 启动时把 YAML 存量数据迁移进 MySQL（仅 MySQL 为主存储时生效）
+  migrate-on-startup: true

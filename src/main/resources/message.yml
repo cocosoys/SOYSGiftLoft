@@ -1,0 +1,92 @@
+# ============================================
+# SOYSGiftLoft 消息文本配置
+# 所有消息均支持 & 颜色代码（由插件自动转换为 Minecraft 颜色）
+# 占位符使用 %key% 形式，由指令逻辑替换
+# ============================================
+
+# 消息前缀（可手动拼接到各条消息前，默认未自动附加）
+prefix: "&b[礼品阁] &r"
+
+# 通用提示
+no-permission: "&c你没有权限执行该指令。"
+no-permission-detail: "&c你没有权限执行该指令（需要权限节点：%perm%）"
+player-only: "&c该指令只能由玩家执行。"
+
+# 重载
+reload-success: "&a已重新加载配置，当前礼包数：%count%"
+
+# 礼包查询
+pack-not-found: "&c未找到礼包：%pack%"
+not-unlocked: "&c你尚未解锁礼包 %pack%，无法领取。"
+not-unlocked-reasons: "&7未满足的解锁条件："
+condition-line: "&7 - %text%"
+
+# 领取结果
+already-claimed: "&e礼包 %pack% 你已经领取过了。"
+# 周期性礼包仍在冷却中时显示，%time% 为距下次可领取的剩余时间
+already-claimed-cooldown: "&e礼包 %pack% 处于冷却中，距下次可领取：%time%"
+no-item-space: "&c背包空间不足（需要 %need% 格，当前 %have% 格），无法领取。"
+claimed: "&a成功领取礼包 %pack%！"
+# 领取特效开启广播时发送给全服
+claim-broadcast: "&b[礼品阁] &e%player% &a领取了礼包 &6%pack%&a！"
+
+# 自动解锁提示（玩家在线满足解锁条件时由定时任务发送）
+notify-unlock: "&b[礼品阁] &a检测到新礼包可领取！&e%pack% &7- %desc%"
+notify-title: "&a新礼包可领取"
+notify-subtitle: "&e%pack% &7- 使用 /sgiftloft claim %id% 领取"
+
+# 管理员操作
+admin-gave: "&a已向玩家 %player% 发放礼包 %pack%。"
+admin-gave-fail: "&c向玩家 %player% 发放礼包 %pack% 失败：%reason%"
+admin-reset: "&a已重置玩家 %player% 的礼包 %pack% 领取状态。"
+player-offline: "&c玩家 %player% 不在线，无法操作。"
+
+# 列表展示
+list-header: "&b=== 礼品阁礼包列表 ==="
+list-format: "&8[%state%&8] &e%pack% &7- %desc%"
+
+# 状态文本
+state-locked: "&c未解锁"
+state-available: "&a可领取"
+state-claimed: "&7已领取"
+
+# 详情展示
+info-header: "&b=== 礼包 %pack% 详情 ==="
+info-desc: "&7描述：%desc%"
+info-conditions: "&7解锁条件："
+info-rewards: "&7奖励内容："
+info-reward-money: "&7 - 金钱：%value%"
+info-reward-points: "&7 - 点券：%value%"
+info-reward-item: "&7 - 物品：%amount% x %material%"
+info-reward-command: "&7 - 指令：%value%"
+info-reward-exp: "&7 - 经验：%value% %unit%"
+info-reward-potion: "&7 - 药水：%effect% &7等级 %amplifier%（%duration% 秒）"
+info-reward-custom: "&7 - 自定义物品：%plugin%:%id% x%amount%"
+info-reward-random: "&7 - 随机奖励池：抽 %rolls% 次（共 %count% 项）"
+
+# 自定义物品发放失败提示（插件未安装或物品不存在时不中断整体领取）
+custom-item-failed: "&c自定义物品发放失败：%plugin%:%id%"
+
+# 存储迁移
+migrate-usage: "&c用法：/sgiftloft migrate <目标后端> [源后端] &7（后端：yaml / mysql / sqlite）"
+migrate-invalid-backend: "&c未知后端标识：%backend% &7（可用：yaml / mysql / sqlite）"
+migrate-same: "&c源后端与目标后端相同（%backend%），无需迁移。"
+migrate-backend-disabled: "&c后端 %backend% 未在 config.yml 中启用，无法参与迁移。"
+migrate-start: "&a正在迁移数据：%from% &7→&a %to% &7（后台进行中…）"
+migrate-done: "&a迁移完成：%from% &7→&a %to%，共 %count% 名玩家的数据已写入。"
+migrate-fail: "&c迁移失败（%from% → %to%）：%reason%"
+
+# 检查展示
+check-format: "&7礼包 %pack% 状态：%state%"
+
+# 帮助文本
+help:
+  - "&b==== SOYSGiftLoft 指令帮助 ===="
+  - "&e/sgiftloft list &7- 查看可领取礼包列表"
+  - "&e/sgiftloft info <id> &7- 查看礼包详情"
+  - "&e/sgiftloft check <id> &7- 检查礼包解锁状态"
+  - "&e/sgiftloft claim <id> &7- 领取礼包"
+  - "&e/sgiftloft reload &7- (管理员: soysgiftloft.admin.reload) 重载配置"
+  - "&e/sgiftloft give <玩家> <id> &7- (管理员: soysgiftloft.admin.give) 强制发放"
+  - "&e/sgiftloft reset <玩家> <id> &7- (管理员: soysgiftloft.admin.reset) 重置领取状态"
+  - "&e/sgiftloft migrate <后端> [源后端] &7- (管理员: soysgiftloft.admin.migrate) 迁移数据"
