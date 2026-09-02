@@ -267,11 +267,15 @@ public class Reward {
             case MONEY:
                 if (mgr.getEconomy() != null) {
                     mgr.getEconomy().depositPlayer(player, money);
+                } else {
+                    mgr.notifyMissingDependency(player, "Vault", "MONEY");
                 }
                 break;
             case POINTS:
                 if (mgr.getPlayerPoints() != null) {
                     mgr.getPlayerPoints().give(player.getUniqueId(), points);
+                } else {
+                    mgr.notifyMissingDependency(player, "PlayerPoints", "POINTS");
                 }
                 break;
             case EXP:

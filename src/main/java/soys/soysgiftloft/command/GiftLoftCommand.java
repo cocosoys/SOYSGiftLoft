@@ -249,6 +249,9 @@ public class GiftLoftCommand implements org.bukkit.command.CommandExecutor, TabC
                         "need", String.valueOf(mgr.getPack(args[1]).getRequiredSlots()),
                         "have", String.valueOf(countFree(p))));
                 break;
+            case GRANT_FAILED:
+                sender.sendMessage(m("grant-failed", "pack", args[1]));
+                break;
             case SUCCESS:
                 sender.sendMessage(m("claimed", "pack", args[1]));
                 break;
@@ -279,6 +282,9 @@ public class GiftLoftCommand implements org.bukkit.command.CommandExecutor, TabC
                 break;
             case NO_SPACE:
                 sender.sendMessage(m("admin-gave-fail", "pack", args[2], "player", args[1], "reason", "背包空间不足"));
+                break;
+            case GRANT_FAILED:
+                sender.sendMessage(m("admin-gave-fail", "pack", args[2], "player", args[1], "reason", "奖励发放异常，已回滚领取状态"));
                 break;
             case SUCCESS:
                 sender.sendMessage(m("admin-gave", "pack", args[2], "player", args[1]));

@@ -22,7 +22,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * SOYSGiftLoft —— 礼品阁插件主类。
  * 玩家满足解锁条件后可领取礼包（金钱 / 点券 / 物品 / 指令）。
- * 强制依赖：Vault、PlayerPoints、PlaceholderAPI。
+ * 软依赖：Vault、PlayerPoints、PlaceholderAPI（缺失时自动降级，不影响加载）。
  *
  * <p>存储策略（与 SOYSLinkTeam 一致）：所有启用的后端按优先级选主存储
  * （MYSQL &gt; SQLITE &gt; YAML），其余作为辅助存储被镜像写入；MySQL 不可用时自动降级。
@@ -45,6 +45,9 @@ public final class SOYSGiftLoft extends JavaPlugin {
 
     private boolean debug = false;
 
+    /** PlaceholderAPI 扩展是否已注册（防止 softdepend 晚加载时重复注册）。 */
+    private boolean papiRegistered = false;
+
     @Override
     public void onEnable() {
         // 1. 主配置文件与访问器
@@ -59,10 +62,9 @@ public final class SOYSGiftLoft extends JavaPlugin {
         // 3. 礼包配置文件
         reloadGiftPacks();
 
-        // 4. 依赖初始化
-        if (!setupEconomy()) {
-            getLogger().warning("未获取到 Vault 经济提供者，MONEY 类奖励/条件将不可用。");
-        }
+        // 4. 依赖初始化（softdepend 可能晚于本插件加载，缺失时不在此告警，
+        //    由 [依赖状态] 汇总 + 各依赖启用后 PluginEnableEvent 补挂的日志呈现）
+        setupEconomy();
         setupPlayerPoints();
 
         // 5. 存储层初始化（按 storage.backends 选主存储，失败自动降级）
@@ -73,10 +75,8 @@ public final class SOYSGiftLoft extends JavaPlugin {
         manager = new GiftLoftManager(this, economy, playerPoints, storageManager);
         manager.load();
 
-        // 7. PlaceholderAPI 扩展
-        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
-            new GiftLoftExpansion(this).register();
-        }
+        // 7. PlaceholderAPI 扩展（softdepend 可能在本插件之后加载，故仅尝试；缺失时由 PluginEnableEvent 补挂）
+        setupPlaceholderAPI();
 
         // 8. 指令与监听
         GiftLoftCommand cmd = new GiftLoftCommand(this);
@@ -117,6 +117,11 @@ public final class SOYSGiftLoft extends JavaPlugin {
             getLogger().info("已启用自动解锁提示，间隔 " + configManager.getAutoNotify() + " 秒。");
         }
 
+        // 依赖状态汇总：软依赖缺失时自动降级，便于单机调试
+        getLogger().info("[依赖状态] Vault=" + (economy != null ? "已加载" : "未加载(已降级)")
+                + " / PlayerPoints=" + (playerPoints != null ? "已加载" : "未加载(已降级)")
+                + " / PlaceholderAPI=" + (manager != null && manager.getPlaceholderHook() ? "已加载" : "未加载(已降级)"));
+
         getLogger().info("SOYSGiftLoft 已启用，加载礼包 " + manager.getPacks().size()
                 + " 个（主存储：" + storageManager.getPrimary().getType().getDisplayName()
                 + "，语言：" + messageLanguage + "）。");
@@ -148,6 +153,7 @@ public final class SOYSGiftLoft extends JavaPlugin {
         if (manager != null) {
             manager.setEconomy(economy);
         }
+        getLogger().info("已挂钩 Vault 经济提供者（MONEY 奖励/条件可用）。");
         return economy != null;
     }
 
@@ -158,9 +164,44 @@ public final class SOYSGiftLoft extends JavaPlugin {
                 if (manager != null) {
                     manager.setPlayerPoints(playerPoints);
                 }
+                getLogger().info("已挂钩 PlayerPoints（POINTS 奖励/条件可用）。");
             } catch (Exception e) {
                 getLogger().warning("获取 PlayerPoints API 失败：" + e.getMessage());
             }
+        }
+    }
+
+    /**
+     * 初始化 / 补挂 PlaceholderAPI 扩展。
+     * 由于 softdepend 顺序，PlaceholderAPI 可能在本插件之后才启用，故在
+     * {@link #onOptionalPluginEnable(String)} 中于其 PluginEnableEvent 时再次调用。
+     */
+    private void setupPlaceholderAPI() {
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            if (manager != null) {
+                manager.setPlaceholderHook(true);
+            }
+            if (!papiRegistered) {
+                new GiftLoftExpansion(this).register();
+                papiRegistered = true;
+                getLogger().info("已注册 PlaceholderAPI 变量扩展（%sgiftloft_*%）。");
+            }
+        }
+    }
+
+    /**
+     * 软依赖插件启用后的懒加载挂钩（由 GiftLoftListener 的 PluginEnableEvent 调用）。
+     * 这样即便 Vault / PlayerPoints / PlaceholderAPI 在本插件之后加载，对应功能仍能正确启用。
+     *
+     * @param name 启用插件的名称
+     */
+    public void onOptionalPluginEnable(String name) {
+        if ("Vault".equals(name)) {
+            setupEconomy();
+        } else if ("PlayerPoints".equals(name)) {
+            setupPlayerPoints();
+        } else if ("PlaceholderAPI".equals(name)) {
+            setupPlaceholderAPI();
         }
     }
 

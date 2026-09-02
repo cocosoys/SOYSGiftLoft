@@ -4,8 +4,10 @@ main: soys.soysgiftloft.SOYSGiftLoft
 author: SOYS
 description: 礼品阁 - 满足条件解锁并发放礼包的插件
 
-# 强制依赖：缺任意一个插件本插件将无法加载
-depend: [Vault, PlayerPoints, PlaceholderAPI]
+# 软依赖：缺任意一个插件本插件仍可加载，仅对应功能（MONEY/POINTS 奖励与条件、
+# PLACEHOLDER 条件、占位符变量）自动降级不可用，便于单机调试。
+# 注意：softdepend 插件在本插件之后加载，故在 PluginEnableEvent 中懒加载挂钩。
+softdepend: [Vault, PlayerPoints, PlaceholderAPI]
 
 commands:
   sgiftloft:

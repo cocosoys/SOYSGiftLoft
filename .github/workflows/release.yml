@@ -1,6 +1,5 @@
 name: Build & Auto Release
 
-# 触发条件：推送 v开头的tag，例如 v1.0.0、v1.1.0
 on:
   push:
     tags:
@@ -31,12 +30,24 @@ jobs:
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
+      - name: Get tag‑commit short message
+        id: get_commit
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%s "${GITHUB_REF}")
+          echo "COMMIT_MSG<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release & upload jar
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ steps.get_version.outputs.VERSION }}
           generate_release_notes: true
+          body: |
+            ## ✨更新说明
+            ${{ steps.get_commit.outputs.COMMIT_MSG }}
+
           files: |
             target/*.jar
         env:

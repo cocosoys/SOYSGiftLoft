@@ -10,6 +10,8 @@ prefix: "&b[GiftLoft] &r"
 # General prompts
 no-permission: "&cYou do not have permission to run this command."
 no-permission-detail: "&cYou do not have permission to run this command (requires node: %perm%)"
+# Friendly notice when an optional dependency is missing (%plugin%=plugin name, %feature%=affected feature)
+dependency-missing: "&c[GiftLoft] &7Optional dependency %plugin% is not loaded; %feature% features are disabled (single-player debug ok)."
 player-only: "&cThis command can only be run by a player."
 
 # Reload
@@ -27,6 +29,8 @@ already-claimed: "&eYou have already claimed gift pack %pack%."
 already-claimed-cooldown: "&eGift pack %pack% is on cooldown, time until next claim: %time%"
 no-item-space: "&cNot enough inventory space (need %need% slots, have %have%), cannot claim."
 claimed: "&aSuccessfully claimed gift pack %pack%!"
+# Shown when reward granting fails (claim state is automatically rolled back, player can retry)
+grant-failed: "&cAn error occurred while granting rewards for pack %pack%. Claim state has been rolled back; please retry later or contact an admin."
 # Sent server-wide when claim effects broadcast is enabled
 claim-broadcast: "&b[GiftLoft] &e%player% &aclaimed gift pack &6%pack%&a!"
 

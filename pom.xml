@@ -6,7 +6,7 @@
 
     <groupId>soys</groupId>
     <artifactId>SOYSGiftLoft</artifactId>
-    <version>1.0.0</version>
+    <version>1.7.0</version>
     <packaging>jar</packaging>
 
     <name>SOYSGiftLoft</name>
@@ -98,6 +98,7 @@
             <groupId>net.milkbowl.vault</groupId>
             <artifactId>VaultAPI</artifactId>
             <version>1.7</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- PlayerPoints (点券，服务端提供) -->

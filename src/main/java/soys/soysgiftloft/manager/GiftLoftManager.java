@@ -36,9 +36,12 @@ public class GiftLoftManager {
             new java.util.EnumMap<>(UnlockCondition.Type.class);
     private boolean placeholderHook = false;
 
+    /** 依赖缺失告警去重集合（按插件名，避免发放循环中刷屏）。reload 时清空。 */
+    private final Set<String> missingDepWarned = new HashSet<>();
+
     /** 领取结果状态机。 */
     public enum ClaimResult {
-        SUCCESS, NOT_FOUND, ALREADY_CLAIMED, NOT_UNLOCKED, NO_SPACE
+        SUCCESS, NOT_FOUND, ALREADY_CLAIMED, NOT_UNLOCKED, NO_SPACE, GRANT_FAILED
     }
 
     public GiftLoftManager(SOYSGiftLoft plugin, Economy economy, PlayerPointsAPI playerPoints, StorageManager storage) {
@@ -56,6 +59,7 @@ public class GiftLoftManager {
     public void load() {
         packs.clear();
         conditionTypeCounts.clear();
+        missingDepWarned.clear();
         FileConfiguration gfc = plugin.getGiftPackConfig();
         if (gfc == null) {
             return;
@@ -90,6 +94,16 @@ public class GiftLoftManager {
             }
             for (UnlockCondition.Type t : types) {
                 conditionTypeCounts.merge(t, 1, Integer::sum);
+            }
+            // 软依赖缺失时，对依赖该插件的礼包给出明确告警（便于调试时定位「为何不满足条件/奖励未发放」）
+            if (economy == null && types.contains(UnlockCondition.Type.MONEY)) {
+                plugin.getLogger().warning("[依赖缺失] 礼包 '" + id + "' 含 MONEY 条件/奖励，但 Vault 未加载，相关功能不可用。");
+            }
+            if (playerPoints == null && types.contains(UnlockCondition.Type.POINTS)) {
+                plugin.getLogger().warning("[依赖缺失] 礼包 '" + id + "' 含 POINTS 条件/奖励，但 PlayerPoints 未加载，相关功能不可用。");
+            }
+            if (!placeholderHook && types.contains(UnlockCondition.Type.PLACEHOLDER)) {
+                plugin.getLogger().warning("[依赖缺失] 礼包 '" + id + "' 含 PLACEHOLDER 条件，但 PlaceholderAPI 未加载，该条件将永远不满足（礼包保持锁定）。");
             }
         }
         if (fatalCount > 0) {
@@ -145,13 +159,43 @@ public class GiftLoftManager {
         return placeholderHook;
     }
 
+    /** 由主类在 Vault/PlayerPoints/PlaceholderAPI 启用（含 softdepend 晚加载）后调用。 */
+    public void setPlaceholderHook(boolean hook) {
+        this.placeholderHook = hook;
+    }
+
     /** 暴露消息配置，供奖励发放（如自定义物品失败提示）读取文本。 */
     public org.bukkit.configuration.file.FileConfiguration getMessageConfig() {
         return plugin.getMessageConfig();
     }
 
     public String parsePlaceholder(Player player, String text) {
+        if (!placeholderHook || player == null || text == null) {
+            return text;
+        }
         return PlaceholderAPI.setPlaceholders(player, text);
+    }
+
+    /**
+     * 依赖缺失时的友好提示：打印一次控制台告警（按插件名去重），并在首次触发时
+     * 向玩家发送一条可读消息，说明该功能因对应插件未加载而降级。便于单机调试时
+     * 明确「为什么金币/点券没发、占位符条件不满足」。
+     *
+     * @param player     触发该功能的玩家（可为 null）
+     * @param pluginName 缺失的插件名（如 Vault / PlayerPoints / PlaceholderAPI）
+     * @param feature    受影响的功能描述（如 MONEY / POINTS / PLACEHOLDER）
+     */
+    public void notifyMissingDependency(Player player, String pluginName, String feature) {
+        if (missingDepWarned.add(pluginName)) {
+            plugin.getLogger().warning("[依赖缺失] 未加载 " + pluginName + " 插件，" + feature
+                    + " 相关功能已自动降级（不影响其余功能，可单机调试）。");
+        }
+        if (player != null) {
+            String msg = message("dependency-missing", "plugin", pluginName, "feature", feature);
+            if (msg != null && !msg.isEmpty()) {
+                player.sendMessage(ColorUtil.color(msg));
+            }
+        }
     }
 
     // ---------------- 在线时长统计 ----------------
@@ -247,20 +291,27 @@ public class GiftLoftManager {
         return n;
     }
 
-    private boolean reserveAndGrant(Player player, GiftPack pack) {
-        int required = pack.getRequiredSlots();
-        int free = countFreeSlots(player);
-        if (required > free) {
-            return false;
-        }
+    /** 检查背包空间是否足够（不发放任何奖励）。 */
+    private boolean hasEnoughSpace(Player player, GiftPack pack) {
+        return pack.getRequiredSlots() <= countFreeSlots(player);
+    }
+
+    /**
+     * 发放礼包的全部奖励。调用方需保证已记录领取状态；
+     * 本方法抛出异常时由调用方回滚领取状态，保证「已记录则已发放、发放失败则回滚」的原子性。
+     *
+     * @throws RuntimeException 任一奖励发放过程中抛出未捕获异常时向上抛出，触发回滚
+     */
+    private void grantRewards(Player player, GiftPack pack) {
         for (Reward r : pack.getRewards()) {
             r.grant(player, this);
         }
-        return true;
     }
 
     /**
      * 玩家主动领取（需满足解锁条件且未领取过/不在冷却中）。
+     * <p>原子性保证：先记录领取状态并落盘，再发放奖励；发放异常时回滚领取状态，
+     * 避免「部分奖励已发放但领取状态未记录」导致的重复领取漏洞。</p>
      */
     public ClaimResult claim(Player player, String packId) {
         GiftPack pack = packs.get(packId);
@@ -273,28 +324,54 @@ public class GiftLoftManager {
         if (!pack.isUnlocked(player, this)) {
             return ClaimResult.NOT_UNLOCKED;
         }
-        if (!reserveAndGrant(player, pack)) {
+        if (!hasEnoughSpace(player, pack)) {
             return ClaimResult.NO_SPACE;
         }
+        // 1. 先记录领取状态并保存（发放前落盘，防止崩溃后重复领取）
         storage.setClaimed(player.getUniqueId(), packId);
         storage.getPrimary().save();
+        // 2. 发放奖励（异常时回滚领取状态）
+        try {
+            grantRewards(player, pack);
+        } catch (Throwable t) {
+            plugin.getLogger().log(java.util.logging.Level.SEVERE,
+                    "礼包 '" + packId + "' 发放奖励时异常，已回滚领取状态: " + t.getMessage(), t);
+            storage.resetClaimed(player.getUniqueId(), packId);
+            storage.getPrimary().save();
+            return ClaimResult.GRANT_FAILED;
+        }
+        // 3. 发放成功，播放特效
         playClaimEffects(player, pack);
         return ClaimResult.SUCCESS;
     }
 
     /**
      * 管理员强制发放（绕过解锁条件与已领取状态）。
+     * <p>原子性保证同 {@link #claim(Player, String)}。</p>
      */
     public ClaimResult adminGive(Player target, String packId) {
         GiftPack pack = packs.get(packId);
         if (pack == null) {
             return ClaimResult.NOT_FOUND;
         }
-        if (!reserveAndGrant(target, pack)) {
+        if (!hasEnoughSpace(target, pack)) {
             return ClaimResult.NO_SPACE;
         }
+        // 1. 先记录领取状态并保存
         storage.setClaimed(target.getUniqueId(), packId);
         storage.getPrimary().save();
+        // 2. 发放奖励（异常时回滚）
+        try {
+            grantRewards(target, pack);
+        } catch (Throwable t) {
+            plugin.getLogger().log(java.util.logging.Level.SEVERE,
+                    "管理员发放礼包 '" + packId + "' 给玩家 " + target.getName()
+                            + " 时异常，已回滚领取状态: " + t.getMessage(), t);
+            storage.resetClaimed(target.getUniqueId(), packId);
+            storage.getPrimary().save();
+            return ClaimResult.GRANT_FAILED;
+        }
+        // 3. 播放特效
         playClaimEffects(target, pack);
         return ClaimResult.SUCCESS;
     }

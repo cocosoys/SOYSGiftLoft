@@ -30,10 +30,12 @@ general:
 storage:
   # 启用的后端按 priority 选主存储：MYSQL(30) > SQLITE(20) > YAML(10)
   # 其余启用的后端作为辅助存储被镜像写入（热备份 / 降级方案）
+  # 默认仅启用 YAML，开箱即用；如需 MySQL/SQLite 请将对应 enabled 改为 true。
   backends:
     mysql:
-      enabled: true
+      enabled: false
       # 通过 url 直接建立连接，无需拆分 host / port / database
+      # 启用示例：将 enabled 改为 true 并填写以下连接信息
       url: "jdbc:mysql://localhost:3306/minecraft?useSSL=false&characterEncoding=utf8&serverTimezone=UTC"
       username: root
       password: ""

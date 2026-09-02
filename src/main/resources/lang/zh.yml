@@ -10,6 +10,8 @@ prefix: "&b[礼品阁] &r"
 # 通用提示
 no-permission: "&c你没有权限执行该指令。"
 no-permission-detail: "&c你没有权限执行该指令（需要权限节点：%perm%）"
+# 软依赖缺失时的友好提示（%plugin%=插件名，%feature%=受影响功能）
+dependency-missing: "&c[礼品阁] &7依赖插件 %plugin% 未加载，%feature% 相关功能已降级（可单机调试）。"
 player-only: "&c该指令只能由玩家执行。"
 
 # 重载
@@ -27,6 +29,8 @@ already-claimed: "&e礼包 %pack% 你已经领取过了。"
 already-claimed-cooldown: "&e礼包 %pack% 处于冷却中，距下次可领取：%time%"
 no-item-space: "&c背包空间不足（需要 %need% 格，当前 %have% 格），无法领取。"
 claimed: "&a成功领取礼包 %pack%！"
+# 奖励发放异常时显示（领取状态已自动回滚，玩家可再次尝试）
+grant-failed: "&c礼包 %pack% 发放奖励时发生异常，领取状态已回滚，请稍后重试或联系管理员。"
 # 领取特效开启广播时发送给全服
 claim-broadcast: "&b[礼品阁] &e%player% &a领取了礼包 &6%pack%&a！"
 
