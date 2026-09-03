@@ -1,0 +1,40 @@
+name: Build Check
+
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - 'v*'
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v5
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Maven compile
+        run: mvn clean compile -B -ntp
+
+      - name: Maven package (skip tests)
+        run: mvn package -DskipTests -B -ntp
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SOYSGiftLoft-${{ github.sha }}
+          path: target/*.jar
+          retention-days: 7
