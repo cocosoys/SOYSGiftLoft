@@ -91,4 +91,31 @@ public class ConfigManager {
         long seconds = config.getLong("storage.memory.auto-save-interval", 300L);
         return seconds <= 0 ? 0L : seconds * 20L;
     }
+
+    // ================================================================
+    //  Web / 后台管理接口
+    // ================================================================
+
+    public boolean isWebEnabled() {
+        return config.getBoolean("web.enabled", false);
+    }
+
+    /** 监听地址，默认仅本机（127.0.0.1），远程访问需改为 0.0.0.0。 */
+    public String getWebHost() {
+        return config.getString("web.host", "127.0.0.1");
+    }
+
+    public int getWebPort() {
+        return config.getInt("web.port", 8317);
+    }
+
+    /** API 访问令牌（Authorization: Bearer <token>），默认 change-me（启动时会告警）。 */
+    public String getWebToken() {
+        return config.getString("web.api-token", "change-me");
+    }
+
+    /** 接口路径前缀，默认 /api。 */
+    public String getWebPathPrefix() {
+        return config.getString("web.path-prefix", "/api");
+    }
 }

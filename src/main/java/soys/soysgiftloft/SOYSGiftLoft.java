@@ -35,6 +35,7 @@ public final class SOYSGiftLoft extends JavaPlugin {
     private GiftLoftManager manager;
     private ConfigManager configManager;
     private StorageManager storageManager;
+    private soys.soysgiftloft.web.WebServer webServer;
 
     private File giftPackFile;
     private FileConfiguration giftPackConfig;
@@ -117,6 +118,12 @@ public final class SOYSGiftLoft extends JavaPlugin {
             getLogger().info("已启用自动解锁提示，间隔 " + configManager.getAutoNotify() + " 秒。");
         }
 
+        // 11. Web / 后台管理接口（默认关闭，按 config.yml 中 web.enabled 启用）
+        if (configManager.isWebEnabled()) {
+            webServer = new soys.soysgiftloft.web.WebServer(this);
+            webServer.start();
+        }
+
         // 依赖状态汇总：软依赖缺失时自动降级，便于单机调试
         getLogger().info("[依赖状态] Vault=" + (economy != null ? "已加载" : "未加载(已降级)")
                 + " / PlayerPoints=" + (playerPoints != null ? "已加载" : "未加载(已降级)")
@@ -129,6 +136,10 @@ public final class SOYSGiftLoft extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (webServer != null) {
+            webServer.stop();
+            webServer = null;
+        }
         if (manager != null) {
             for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) {
                 manager.flushPlaytime(p);
@@ -291,6 +302,16 @@ public final class SOYSGiftLoft extends JavaPlugin {
         reloadGiftPacks();
         manager.invalidateDefaultEffects();
         manager.load();
+        // Web 接口配置变更（端口/token/启用状态）立即生效
+        if (webServer == null && configManager.isWebEnabled()) {
+            webServer = new soys.soysgiftloft.web.WebServer(this);
+            webServer.start();
+        } else if (webServer != null) {
+            webServer.reloadFromConfig();
+            if (!webServer.isRunning()) {
+                webServer = null;
+            }
+        }
     }
 
     public GiftLoftManager getManager() {

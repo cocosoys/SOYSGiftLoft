@@ -5,7 +5,7 @@
 [![Build](https://img.shields.io/badge/build-Maven-blue.svg)](https://maven.apache.org/)
 [![Java](https://img.shields.io/badge/java-8-orange.svg)](https://www.oracle.com/java/technologies/javase/javase8-archive-downloads.html)
 [![Platform](https://img.shields.io/badge/platform-Spigot%201.12.2-green.svg)](https://www.spigotmc.org/)
-[![Version](https://img.shields.io/badge/version-1.7.0-brightgreen.svg)](#)
+[![Version](https://img.shields.io/badge/version-1.8.0-brightgreen.svg)](#)
 
 ---
 
@@ -21,6 +21,7 @@
 - [指令与权限](#指令与权限)
 - [PlaceholderAPI 变量](#placeholderapi-变量)
 - [存储架构](#存储架构)
+- [Web 管理接口](#web-管理接口)
 - [兼容插件](#兼容插件)
 - [从源码构建](#从源码构建)
 - [版本历史](#版本历史)
@@ -325,6 +326,72 @@ giftpacks:
 
 ---
 
+## Web 管理接口
+
+本插件内置零依赖的 REST JSON 管理接口（基于 JDK `HttpServer`，不引入任何第三方库），用于远程查看与发放礼包。**默认关闭**，需在 `config.yml` 的 `web` 配置节手动启用：
+
+```yaml
+web:
+  enabled: true          # 开启管理接口
+  host: "127.0.0.1"      # 监听地址；远程访问请改为 "0.0.0.0"
+  port: 8317
+  api-token: "请改为随机长字符串"  # 访问令牌
+  path-prefix: "/api"
+```
+
+### 认证方式
+
+所有请求需携带请求头：`Authorization: Bearer <api-token>`，否则返回 `401`。
+
+### 端点一览
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/status` | 插件概览：版本、礼包数、存储后端、在线人数、运行时长 |
+| GET | `/api/packs` | 礼包列表（含模式/条件类型/奖励数/所需背包格） |
+| GET | `/api/pack/<id>` | 单个礼包详情（含奖励摘要） |
+| GET | `/api/player/<name>` | 在线玩家状态（离线玩家请用下方 uuid 端点） |
+| GET | `/api/player?uuid=<uuid>` | 按 UUID 查询玩家状态（在线/离线均可） |
+| POST | `/api/player/<name>/give` | 发放礼包，表单 `pack=<id>`，可选 `force=true`（绕过条件/冷却，玩家需在线） |
+| POST | `/api/reset` | 重置领取状态，表单 `player=<玩家名或UUID>&pack=<id>`（可离线操作） |
+| POST | `/api/reload` | 重载全部配置 |
+
+### 玩家状态字段
+
+每个礼包返回 `state` 字段，取值：
+
+| 值 | 含义 |
+|----|------|
+| `AVAILABLE` | 已解锁且可领取 |
+| `LOCKED` | 未解锁 |
+| `CLAIMED` | 已领取（ONCE 永久 / 周期性礼包冷却中） |
+| `COOLDOWN` | 周期性礼包冷却中（`cooldownRemaining` 为剩余秒数） |
+| `UNKNOWN` | 玩家离线，无法评估解锁条件 |
+
+> 离线玩家仅能通过 `uuid` 端点查询；`unlocked` 字段在离线时返回 `null`。
+> 发放奖励强依赖玩家实体（物品进背包、指令 `%player%` 替换、音效等），因此 **give 接口要求目标玩家在线**。
+
+### 示例
+
+```bash
+# 查询礼包列表
+curl -H "Authorization: Bearer mytoken" http://127.0.0.1:8317/api/packs
+
+# 强制给在线玩家 Steve 发放 welcome 礼包
+curl -X POST -H "Authorization: Bearer mytoken" \
+  -d "pack=welcome&force=true" \
+  http://127.0.0.1:8317/api/player/Steve/give
+
+# 重置玩家领取状态（可离线，传 UUID）
+curl -X POST -H "Authorization: Bearer mytoken" \
+  -d "player=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx&pack=welcome" \
+  http://127.0.0.1:8317/api/reset
+```
+
+> **安全提示**：开放远程访问（`host: 0.0.0.0`）前务必修改 `api-token` 为高强度随机字符串；接口未提供 TLS，生产环境建议通过内网/VPN 或反向代理访问。
+
+---
+
 ## 兼容插件
 
 ### 经济/点券
@@ -376,6 +443,13 @@ mvn clean package -DskipTests
 ---
 
 ## 版本历史
+
+### v1.8.0 — Web / 后台管理接口
+- 新增 `web/WebServer`：基于 JDK 内置 HttpServer 的零依赖 REST JSON 管理接口（默认关闭）
+- Bearer token 认证（常量时间比较防时序攻击），端点：status / packs / pack / player / give / reset / reload
+- 所有业务操作调度到 Bukkit 主线程执行，与指令路径一致，保证并发安全
+- 发放奖励强依赖玩家实体，give 接口要求目标玩家在线；reset 支持离线玩家（按 UUID）
+- 接口配置（端口/token/启用状态）在 `/sgiftloft reload` 后即时生效
 
 ### v1.7.0 — 软依赖降级与 PlaceholderAPI 可选
 - plugin.yml 由 `depend` 改为 `softdepend`，Vault / PlayerPoints / PlaceholderAPI 缺失时插件仍可加载
