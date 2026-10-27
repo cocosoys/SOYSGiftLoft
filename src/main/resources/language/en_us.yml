@@ -1,0 +1,73 @@
+# ============ SOYSGiftLoft English Language Pack ============
+# Flat dot-path keys, all prefixed with "soysgiftloft." (lowercased plugin name).
+# Placeholders use {0} {1} ... (replaced in call order).
+# Color codes use "&", auto-translated to "§" by the plugin.
+# Language files live in <plugin data folder>/language/, filename = language code (zh_cn / en_us).
+# To customize, edit plugins/SOYSGiftLoft/language/en_us.yml and reload.
+
+# ---------- General ----------
+soysgiftloft.general.no-permission: "&cYou do not have permission to run this command."
+soysgiftloft.general.no-permission-detail: "&cYou do not have permission to run this command (requires node: {0})"
+soysgiftloft.general.dependency-missing: "&c[GiftLoft] &7Optional dependency {0} is not loaded; {1} features are disabled (single-player debug ok)."
+soysgiftloft.general.player-only: "&cThis command can only be run by a player."
+
+# ---------- Pack queries ----------
+soysgiftloft.pack.not-found: "&cGift pack not found: {0}"
+soysgiftloft.pack.not-unlocked: "&cYou have not unlocked gift pack {0}, cannot claim."
+soysgiftloft.pack.not-unlocked-reasons: "&7Unmet unlock conditions:"
+soysgiftloft.pack.condition-line: "&7 - {0}"
+soysgiftloft.pack.check-format: "&7Gift pack {0} status: {1}"
+
+# ---------- Claim ----------
+soysgiftloft.claim.already-claimed: "&eYou have already claimed gift pack {0}."
+soysgiftloft.claim.already-claimed-cooldown: "&eGift pack {0} is on cooldown, time until next claim: {1}"
+soysgiftloft.claim.no-item-space: "&cNot enough inventory space (need {0} slots, have {1}), cannot claim."
+soysgiftloft.claim.claimed: "&aSuccessfully claimed gift pack {0}!"
+soysgiftloft.claim.grant-failed: "&cAn error occurred while granting rewards for pack {0}. Claim state has been rolled back; please retry later or contact an admin."
+soysgiftloft.claim.broadcast: "&b[GiftLoft] &e{0} &aclaimed gift pack &6{1}&a!"
+soysgiftloft.claim.custom-item-failed: "&cFailed to give custom item: {0}:{1}"
+
+# ---------- Auto-unlock notify ----------
+soysgiftloft.notify.unlock: "&b[GiftLoft] &aA new gift pack is available! &e{0} &7- {1}"
+soysgiftloft.notify.title: "&aNew gift available"
+soysgiftloft.notify.subtitle: "&e{0} &7- use /sgiftloft claim {1}"
+
+# ---------- Admin commands ----------
+soysgiftloft.admin.reload-success: "&aConfiguration reloaded, gift packs loaded: {0}"
+soysgiftloft.admin.gave: "&aGranted gift pack {1} to player {0}."
+soysgiftloft.admin.gave-fail: "&cFailed to grant gift pack {1} to player {0}: {2}"
+soysgiftloft.admin.reset: "&aReset claim state of gift pack {1} for player {0}."
+soysgiftloft.admin.player-offline: "&cPlayer {0} is not online, cannot operate."
+soysgiftloft.admin.migrate-usage: "&cUsage: /sgiftloft migrate <target backend> [source backend] &7(backends: yaml / mysql / sqlite)"
+soysgiftloft.admin.migrate-invalid-backend: "&cUnknown backend: {0} &7(available: yaml / mysql / sqlite)"
+soysgiftloft.admin.migrate-same: "&cSource and target backend are the same ({0}), migration not needed."
+soysgiftloft.admin.migrate-backend-disabled: "&cBackend {0} is not enabled in config.yml, cannot migrate."
+soysgiftloft.admin.migrate-start: "&aMigrating data: {0} &7→&a {1} &7(running in background…)"
+soysgiftloft.admin.migrate-done: "&aMigration complete: {0} &7→&a {1}, {2} players written."
+soysgiftloft.admin.migrate-fail: "&cMigration failed ({0} → {1}): {2}"
+
+# ---------- List display ----------
+soysgiftloft.list.header: "&b=== GiftLoft Pack List ==="
+soysgiftloft.list.format: "&8[{0}&8] &e{1} &7- {2}"
+
+# ---------- State text ----------
+soysgiftloft.state.locked: "&cLocked"
+soysgiftloft.state.available: "&aAvailable"
+soysgiftloft.state.claimed: "&7Claimed"
+
+# ---------- Info display ----------
+soysgiftloft.info.header: "&b=== Gift Pack {0} Details ==="
+soysgiftloft.info.desc: "&7Description: {0}"
+soysgiftloft.info.conditions: "&7Unlock conditions:"
+soysgiftloft.info.rewards: "&7Rewards:"
+soysgiftloft.info.reward-money: "&7 - Money: {0}"
+soysgiftloft.info.reward-points: "&7 - Points: {0}"
+soysgiftloft.info.reward-item: "&7 - Item: {0} x {1}"
+soysgiftloft.info.reward-command: "&7 - Command: {0}"
+soysgiftloft.info.reward-exp: "&7 - EXP: {0} {1}"
+soysgiftloft.info.reward-potion: "&7 - Potion: {0} &7lv {1} ({2}s)"
+soysgiftloft.info.reward-custom: "&7 - Custom item: {0}:{1} x{2}"
+soysgiftloft.info.reward-random: "&7 - Random pool: draw {0}x ({1} entries)"
+
+# ---------- Help text (multi-line joined with \n) ----------
+soysgiftloft.help: "&b==== SOYSGiftLoft Command Help ====\n&e/sgiftloft list &7- View claimable gift packs\n&e/sgiftloft info <id> &7- View gift pack details\n&e/sgiftloft check <id> &7- Check gift pack unlock status\n&e/sgiftloft claim <id> &7- Claim a gift pack\n&e/sgiftloft reload &7- (Admin: soysgiftloft.admin.reload) Reload config\n&e/sgiftloft give <player> <id> &7- (Admin: soysgiftloft.admin.give) Force grant\n&e/sgiftloft reset <player> <id> &7- (Admin: soysgiftloft.admin.reset) Reset claim state\n&e/sgiftloft migrate <backend> [source] &7- (Admin: soysgiftloft.admin.migrate) Migrate data"

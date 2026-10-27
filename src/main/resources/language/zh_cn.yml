@@ -1,0 +1,73 @@
+# ============ SOYSGiftLoft 中文语言包 ============
+# 统一平铺点路径键，所有键以 soysoygiftloft. 前缀开头（插件名小写）。
+# 占位符用 {0} {1} ...（按调用顺序替换）。
+# 颜色码使用 & 符号，由插件自动转换为 §。
+# 语言文件存放在 插件配置目录/language/ 文件夹下，文件名即语言代码（zh_cn / en_us）。
+# 如需自定义，请编辑 服务器目录/plugins/SOYSGiftLoft/language/zh_cn.yml，重启或 reload 生效。
+
+# ---------- 通用 ----------
+soysgiftloft.general.no-permission: "&c你没有权限执行该指令。"
+soysgiftloft.general.no-permission-detail: "&c你没有权限执行该指令（需要权限节点：{0}）"
+soysgiftloft.general.dependency-missing: "&c[礼品阁] &7依赖插件 {0} 未加载，{1} 相关功能已降级（可单机调试）。"
+soysgiftloft.general.player-only: "&c该指令只能由玩家执行。"
+
+# ---------- 礼包查询 ----------
+soysgiftloft.pack.not-found: "&c未找到礼包：{0}"
+soysgiftloft.pack.not-unlocked: "&c你尚未解锁礼包 {0}，无法领取。"
+soysgiftloft.pack.not-unlocked-reasons: "&7未满足的解锁条件："
+soysgiftloft.pack.condition-line: "&7 - {0}"
+soysgiftloft.pack.check-format: "&7礼包 {0} 状态：{1}"
+
+# ---------- 领取 ----------
+soysgiftloft.claim.already-claimed: "&e礼包 {0} 你已经领取过了。"
+soysgiftloft.claim.already-claimed-cooldown: "&e礼包 {0} 处于冷却中，距下次可领取：{1}"
+soysgiftloft.claim.no-item-space: "&c背包空间不足（需要 {0} 格，当前 {1} 格），无法领取。"
+soysgiftloft.claim.claimed: "&a成功领取礼包 {0}！"
+soysgiftloft.claim.grant-failed: "&c礼包 {0} 发放奖励时发生异常，领取状态已回滚，请稍后重试或联系管理员。"
+soysgiftloft.claim.broadcast: "&b[礼品阁] &e{0} &a领取了礼包 &6{1}&a！"
+soysgiftloft.claim.custom-item-failed: "&c自定义物品发放失败：{0}:{1}"
+
+# ---------- 自动解锁通知 ----------
+soysgiftloft.notify.unlock: "&b[礼品阁] &a检测到新礼包可领取！&e{0} &7- {1}"
+soysgiftloft.notify.title: "&a新礼包可领取"
+soysgiftloft.notify.subtitle: "&e{0} &7- 使用 /sgiftloft claim {1} 领取"
+
+# ---------- 管理指令 ----------
+soysgiftloft.admin.reload-success: "&a已重新加载配置，当前礼包数：{0}"
+soysgiftloft.admin.gave: "&a已向玩家 {0} 发放礼包 {1}。"
+soysgiftloft.admin.gave-fail: "&c向玩家 {0} 发放礼包 {1} 失败：{2}"
+soysgiftloft.admin.reset: "&a已重置玩家 {0} 的礼包 {1} 领取状态。"
+soysgiftloft.admin.player-offline: "&c玩家 {0} 不在线，无法操作。"
+soysgiftloft.admin.migrate-usage: "&c用法：/sgiftloft migrate <目标后端> [源后端] &7（后端：yaml / mysql / sqlite）"
+soysgiftloft.admin.migrate-invalid-backend: "&c未知后端标识：{0} &7（可用：yaml / mysql / sqlite）"
+soysgiftloft.admin.migrate-same: "&c源后端与目标后端相同（{0}），无需迁移。"
+soysgiftloft.admin.migrate-backend-disabled: "&c后端 {0} 未在 config.yml 中启用，无法参与迁移。"
+soysgiftloft.admin.migrate-start: "&a正在迁移数据：{0} &7→&a {1} &7（后台进行中…）"
+soysgiftloft.admin.migrate-done: "&a迁移完成：{0} &7→&a {1}，共 {2} 名玩家的数据已写入。"
+soysgiftloft.admin.migrate-fail: "&c迁移失败（{0} → {1}）：{2}"
+
+# ---------- 列表展示 ----------
+soysgiftloft.list.header: "&b=== 礼品阁礼包列表 ==="
+soysgiftloft.list.format: "&8[{0}&8] &e{1} &7- {2}"
+
+# ---------- 状态文本 ----------
+soysgiftloft.state.locked: "&c未解锁"
+soysgiftloft.state.available: "&a可领取"
+soysgiftloft.state.claimed: "&7已领取"
+
+# ---------- 详情展示 ----------
+soysgiftloft.info.header: "&b=== 礼包 {0} 详情 ==="
+soysgiftloft.info.desc: "&7描述：{0}"
+soysgiftloft.info.conditions: "&7解锁条件："
+soysgiftloft.info.rewards: "&7奖励内容："
+soysgiftloft.info.reward-money: "&7 - 金钱：{0}"
+soysgiftloft.info.reward-points: "&7 - 点券：{0}"
+soysgiftloft.info.reward-item: "&7 - 物品：{0} x {1}"
+soysgiftloft.info.reward-command: "&7 - 指令：{0}"
+soysgiftloft.info.reward-exp: "&7 - 经验：{0} {1}"
+soysgiftloft.info.reward-potion: "&7 - 药水：{0} &7等级 {1}（{2} 秒）"
+soysgiftloft.info.reward-custom: "&7 - 自定义物品：{0}:{1} x{2}"
+soysgiftloft.info.reward-random: "&7 - 随机奖励池：抽 {0} 次（共 {1} 项）"
+
+# ---------- 帮助文本（多行用 \n 拼接） ----------
+soysgiftloft.help: "&b==== SOYSGiftLoft 指令帮助 ====\n&e/sgiftloft list &7- 查看可领取礼包列表\n&e/sgiftloft info <id> &7- 查看礼包详情\n&e/sgiftloft check <id> &7- 检查礼包解锁状态\n&e/sgiftloft claim <id> &7- 领取礼包\n&e/sgiftloft reload &7- (管理员: soysgiftloft.admin.reload) 重载配置\n&e/sgiftloft give <玩家> <id> &7- (管理员: soysgiftloft.admin.give) 强制发放\n&e/sgiftloft reset <玩家> <id> &7- (管理员: soysgiftloft.admin.reset) 重置领取状态\n&e/sgiftloft migrate <后端> [源后端] &7- (管理员: soysgiftloft.admin.migrate) 迁移数据"

@@ -7,7 +7,11 @@ description: 礼品阁 - 满足条件解锁并发放礼包的插件
 # 软依赖：缺任意一个插件本插件仍可加载，仅对应功能（MONEY/POINTS 奖励与条件、
 # PLACEHOLDER 条件、占位符变量）自动降级不可用，便于单机调试。
 # 注意：softdepend 插件在本插件之后加载，故在 PluginEnableEvent 中懒加载挂钩。
-softdepend: [Vault, PlayerPoints, PlaceholderAPI]
+# SOYSHTTPOverMC：注解式 Web API 网关宿主（SoysExpansion / @GetMapping 等能力来源）；
+#   Web 管理接口的挂载容器，缺失时 Web 接口不可用（由 SoysReadyEvent / reload 补挂），
+#   不影响指令、领取与存储。
+# MCERP：ERP 管理面宿主；存在时额外注册「礼品阁」菜单与 /erp/* 管理端点。
+softdepend: [Vault, PlayerPoints, PlaceholderAPI, SOYSHTTPOverMC, MCERP]
 
 commands:
   sgiftloft:
@@ -34,4 +38,26 @@ permissions:
     default: op
   soysgiftloft.admin.migrate:
     description: 手动触发存储后端间数据迁移
+    default: op
+  # ---- Web 管理接口（SOYSHTTPOverMC /erp/* 端点，Bukkit 权限镜像，OP 默认放行）----
+  soysgiftloft.erp:
+    description: 礼品阁 ERP 管理面总权限
+    default: op
+  soysgiftloft.erp.pack.list:
+    description: ERP-查看礼包列表
+    default: op
+  soysgiftloft.erp.pack.query:
+    description: ERP-查看礼包详情
+    default: op
+  soysgiftloft.erp.player.query:
+    description: ERP-查询玩家领取状态
+    default: op
+  soysgiftloft.erp.give:
+    description: ERP-发放礼包
+    default: op
+  soysgiftloft.erp.reset:
+    description: ERP-重置玩家领取状态
+    default: op
+  soysgiftloft.erp.reload:
+    description: ERP-重载配置
     default: op

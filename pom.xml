@@ -6,7 +6,7 @@
 
     <groupId>soys</groupId>
     <artifactId>SOYSGiftLoft</artifactId>
-    <version>1.8.0</version>
+    <version>1.9.0</version>
     <packaging>jar</packaging>
 
     <name>SOYSGiftLoft</name>
@@ -135,6 +135,37 @@
             <artifactId>sqlite-jdbc</artifactId>
             <version>3.36.0.3</version>
             <scope>provided</scope>
+        </dependency>
+
+        <!--
+            SOYSHTTPOverMC（HTTP-over-MC 网关 + 注解式 Web API）：
+            运行时由服务器提供（softdepend，见 plugin.yml），编译期引用其构建产物
+            （1.12.2 shaded jar，与 MCERP 同一引用范式）。
+            Spring 式能力（@RequestMapping/@GetMapping/AjaxResult/SoysExpansion 等）
+            全部来自本依赖——不引入 spring-boot-starter-web（禁内嵌 Tomcat）。
+            升级方式：SOYSHTTPOverMC 重新 package 后同步修改下方 version 与 systemPath。
+        -->
+        <dependency>
+            <groupId>com.github.cocosoys.mc</groupId>
+            <artifactId>soyshttpovermc</artifactId>
+            <version>1.4.1</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/../SOYSHTTPOverMC/core/target/SOYSHTTPOverMC-1_12-1.4.1.jar</systemPath>
+        </dependency>
+
+        <!--
+            MCERP（ERP 管理面宿主，softdepend 见 plugin.yml）：
+            运行时由服务器提供，编译期引用其 original jar（shade 前的纯 MCERP 类，
+            不重复捆绑 SOYS/jackson 等传递依赖，避免与上方 soyshttpovermc 依赖产生类冲突）。
+            SoysGiftLoftErpExpansion（McerpExpansion 子类）/ ErpMenus / ControllerPermScanner 来自本依赖。
+            升级方式：MCERP 重新 package 后同步修改下方 version 与 systemPath。
+        -->
+        <dependency>
+            <groupId>com.github.cocosoys.mc</groupId>
+            <artifactId>MCERP</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/../MCERP/target/original-MCERP-1.0-SNAPSHOT.jar</systemPath>
         </dependency>
     </dependencies>
 </project>

@@ -65,19 +65,21 @@ storage:
   migrate-on-startup: true
 
 # ============================================
-# Web / 后台管理接口（默认关闭）
-# 提供 REST JSON 接口：远程查看礼包与玩家状态、发放/重置礼包、重载配置
-# 端点见 README「Web 管理接口」章节
+# Web / 后台管理接口（v1.9.0 起经 SOYSHTTPOverMC 注解式 API 提供）
+# 端点统一落在 /api/plugins/SOYSGiftLoft/*（监听地址/端口/路径前缀由
+# SOYSHTTPOverMC 的配置统一管理，本插件不再自启 HttpServer）
+# 认证：Authorization: Bearer <api-token>（与 v1.8 一致，现有调用方零改动）
+# 装有 MCERP 时另有 ERP 管理面 /api/plugins/SOYSGiftLoft/erp/*（SOYS 原生认证 + soysgiftloft.erp.* 权限）
 # ============================================
 web:
-  # 是否启用管理接口，默认关闭（启用示例：改为 true）
+  # 是否向 SOYSHTTPOverMC 注册管理接口端点，默认关闭（启用示例：改为 true）。
+  # 关闭时插件其余功能（指令/领取/存储）完全不受影响。
   enabled: false
-  # 监听地址：默认仅本机可访问；需要远程访问时改为 "0.0.0.0"
-  host: "127.0.0.1"
-  # 监听端口
-  port: 8317
-  # API 访问令牌：所有请求需携带 Authorization: Bearer <api-token>
+  # API 访问令牌：所有机器管理接口请求需携带 Authorization: Bearer <api-token>
   # 强烈建议修改为随机长字符串后再开放远程访问
   api-token: "change-me"
-  # 接口路径前缀
+  # 以下为 v1.8 内置 HttpServer 遗留配置，现已由 SOYSHTTPOverMC 统一管理
+  # （保留仅为兼容旧配置文件，不再读取；监听/端口/前缀请配置 SOYSHTTPOverMC）
+  host: "127.0.0.1"
+  port: 8317
   path-prefix: "/api"

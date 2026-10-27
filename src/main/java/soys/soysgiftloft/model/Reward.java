@@ -343,10 +343,11 @@ public class Reward {
             Bukkit.getLogger().warning("[SOYSGiftLoft] 自定义物品发放失败："
                     + customPlugin.name() + ":" + customId + "（插件未安装或物品不存在）");
             if (mgr != null) {
-                String msg = ColorUtil.color(mgr.getMessageConfig().getString("custom-item-failed",
-                        "&c自定义物品发放失败：%plugin%:%id%"));
-                msg = msg.replace("%plugin%", customPlugin.name()).replace("%id%", customId);
-                player.sendMessage(msg);
+                String msg = mgr.message("claim.custom-item-failed",
+                        customPlugin.name(), customId);
+                if (msg != null && !msg.isEmpty()) {
+                    player.sendMessage(msg);
+                }
             }
         }
     }

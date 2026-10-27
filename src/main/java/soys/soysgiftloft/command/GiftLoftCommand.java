@@ -51,7 +51,7 @@ public class GiftLoftCommand implements org.bukkit.command.CommandExecutor, TabC
         // 中心化权限门禁：缺权限时提示所需节点，避免玩家盲目试错
         String perm = SUB_PERMISSION.get(sub);
         if (perm != null && !sender.hasPermission(perm)) {
-            sender.sendMessage(m("no-permission-detail", "perm", perm));
+            sender.sendMessage(m("general.no-permission-detail", perm));
             return true;
         }
         switch (sub) {
@@ -81,88 +81,88 @@ public class GiftLoftCommand implements org.bukkit.command.CommandExecutor, TabC
 
     private boolean cmdList(CommandSender sender) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage(m("player-only"));
+            sender.sendMessage(m("general.player-only"));
             return true;
         }
         Player p = (Player) sender;
-        sender.sendMessage(m("list-header"));
+        sender.sendMessage(m("list.header"));
         for (Map.Entry<String, GiftPack> e : mgr.getPacks().entrySet()) {
             String id = e.getKey();
             GiftPack pack = e.getValue();
             String state;
             if (mgr.isPackClaimed(p.getUniqueId(), pack)) {
-                state = m("state-claimed");
+                state = m("state.claimed");
             } else if (pack.isUnlocked(p, mgr)) {
-                state = m("state-available");
+                state = m("state.available");
             } else {
-                state = m("state-locked");
+                state = m("state.locked");
             }
-            sender.sendMessage(m("list-format",
-                    "state", state, "pack", id, "desc", pack.getDescription()));
+            sender.sendMessage(m("list.format", state, id, pack.getDescription()));
         }
         return true;
     }
 
     private boolean cmdInfo(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(m("pack-not-found", "pack", ""));
+            sender.sendMessage(m("pack.not-found", ""));
             return true;
         }
         GiftPack pack = mgr.getPack(args[1]);
         if (pack == null) {
-            sender.sendMessage(m("pack-not-found", "pack", args[1]));
+            sender.sendMessage(m("pack.not-found", args[1]));
             return true;
         }
-        sender.sendMessage(m("info-header", "pack", pack.getId()));
-        sender.sendMessage(m("info-desc", "desc", pack.getDescription()));
-        sender.sendMessage(m("info-conditions"));
+        sender.sendMessage(m("info.header", pack.getId()));
+        sender.sendMessage(m("info.desc", pack.getDescription()));
+        sender.sendMessage(m("info.conditions"));
         Player viewer = (sender instanceof Player) ? (Player) sender : null;
         List<String> condLines = pack.describeConditions(viewer, mgr);
         if (condLines.isEmpty()) {
-            sender.sendMessage(m("condition-line", "text", "无（任何玩家均可领取）"));
+            sender.sendMessage(m("pack.condition-line", "无（任何玩家均可领取）"));
         } else {
             for (String line : condLines) {
-                sender.sendMessage(m("condition-line", "text", line));
+                sender.sendMessage(m("pack.condition-line", line));
             }
         }
-        sender.sendMessage(m("info-rewards"));
+        sender.sendMessage(m("info.rewards"));
         for (Reward r : pack.getRewards()) {
             switch (r.getType()) {
                 case MONEY:
-                    sender.sendMessage(m("info-reward-money", "value", String.valueOf(r.getMoney())));
+                    sender.sendMessage(m("info.reward-money", String.valueOf(r.getMoney())));
                     break;
                 case POINTS:
-                    sender.sendMessage(m("info-reward-points", "value", String.valueOf(r.getPoints())));
+                    sender.sendMessage(m("info.reward-points", String.valueOf(r.getPoints())));
                     break;
                 case ITEM:
                     String mat = r.getItem() != null ? r.getItem().getType().name() : "?";
                     int amt = r.getItem() != null ? r.getItem().getAmount() : 0;
-                    sender.sendMessage(m("info-reward-item", "material", mat, "amount", String.valueOf(amt)));
+                    sender.sendMessage(m("info.reward-item", String.valueOf(amt), mat));
                     break;
                 case COMMAND:
-                    sender.sendMessage(m("info-reward-command", "value", r.getCommand()));
+                    sender.sendMessage(m("info.reward-command", r.getCommand()));
                     break;
                 case EXP:
-                    sender.sendMessage(m("info-reward-exp",
-                            "value", String.valueOf((int) r.getExpValue()),
-                            "unit", r.isExpLevels() ? "级" : "点"));
+                    sender.sendMessage(m("info.reward-exp",
+                            String.valueOf((int) r.getExpValue()),
+                            r.isExpLevels() ? "级" : "点"));
                     break;
                 case POTION:
-                    sender.sendMessage(m("info-reward-potion",
-                            "effect", r.getPotionEffect() == null ? "?" : r.getPotionEffect(),
-                            "amplifier", String.valueOf(r.getPotionAmplifier() + 1),
-                            "duration", String.valueOf(r.getPotionDuration())));
+                    sender.sendMessage(m("info.reward-potion",
+                            r.getPotionEffect() == null ? "?" : r.getPotionEffect(),
+                            String.valueOf(r.getPotionAmplifier() + 1),
+                            String.valueOf(r.getPotionDuration())));
                     break;
                 case CUSTOM_ITEM:
                     String plug = r.getCustomPlugin() == null ? "?" : r.getCustomPlugin().name();
-                    sender.sendMessage(m("info-reward-custom",
-                            "plugin", plug, "id", r.getCustomId() == null ? "?" : r.getCustomId(),
-                            "amount", String.valueOf(r.getCustomAmount())));
+                    sender.sendMessage(m("info.reward-custom",
+                            plug,
+                            r.getCustomId() == null ? "?" : r.getCustomId(),
+                            String.valueOf(r.getCustomAmount())));
                     break;
                 case RANDOM:
-                    sender.sendMessage(m("info-reward-random",
-                            "rolls", String.valueOf(r.getRolls()),
-                            "count", String.valueOf(r.getRandomPool().size())));
+                    sender.sendMessage(m("info.reward-random",
+                            String.valueOf(r.getRolls()),
+                            String.valueOf(r.getRandomPool().size())));
                     break;
             }
         }
@@ -171,34 +171,34 @@ public class GiftLoftCommand implements org.bukkit.command.CommandExecutor, TabC
 
     private boolean cmdCheck(CommandSender sender, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage(m("player-only"));
+            sender.sendMessage(m("general.player-only"));
             return true;
         }
         if (args.length < 2) {
-            sender.sendMessage(m("pack-not-found", "pack", ""));
+            sender.sendMessage(m("pack.not-found", ""));
             return true;
         }
         Player p = (Player) sender;
         GiftPack pack = mgr.getPack(args[1]);
         if (pack == null) {
-            sender.sendMessage(m("pack-not-found", "pack", args[1]));
+            sender.sendMessage(m("pack.not-found", args[1]));
             return true;
         }
         String state;
         if (mgr.isPackClaimed(p.getUniqueId(), pack)) {
-            state = m("state-claimed");
+            state = m("state.claimed");
         } else if (pack.isUnlocked(p, mgr)) {
-            state = m("state-available");
+            state = m("state.available");
         } else {
-            state = m("state-locked");
+            state = m("state.locked");
         }
-        sender.sendMessage(m("check-format", "pack", args[1], "state", state));
+        sender.sendMessage(m("pack.check-format", args[1], state));
         if (!mgr.isPackClaimed(p.getUniqueId(), pack) && !pack.isUnlocked(p, mgr)) {
             List<String> unmet = pack.getUnmetConditions(p, mgr);
             if (!unmet.isEmpty()) {
-                sender.sendMessage(m("not-unlocked-reasons"));
+                sender.sendMessage(m("pack.not-unlocked-reasons"));
                 for (String s : unmet) {
-                    sender.sendMessage(m("condition-line", "text", s));
+                    sender.sendMessage(m("pack.condition-line", s));
                 }
             }
         }
@@ -207,53 +207,53 @@ public class GiftLoftCommand implements org.bukkit.command.CommandExecutor, TabC
 
     private boolean cmdClaim(CommandSender sender, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage(m("player-only"));
+            sender.sendMessage(m("general.player-only"));
             return true;
         }
         if (args.length < 2) {
-            sender.sendMessage(m("pack-not-found", "pack", ""));
+            sender.sendMessage(m("pack.not-found", ""));
             return true;
         }
         Player p = (Player) sender;
         GiftLoftManager.ClaimResult res = mgr.claim(p, args[1]);
         switch (res) {
             case NOT_FOUND:
-                sender.sendMessage(m("pack-not-found", "pack", args[1]));
+                sender.sendMessage(m("pack.not-found", args[1]));
                 break;
             case ALREADY_CLAIMED:
                 GiftPack claimedPack = mgr.getPack(args[1]);
                 long remaining = claimedPack != null
                         ? mgr.getCooldownRemaining(p.getUniqueId(), claimedPack) : -1;
                 if (claimedPack != null && claimedPack.isPeriodic() && remaining > 0) {
-                    sender.sendMessage(m("already-claimed-cooldown",
-                            "pack", args[1], "time", ColorUtil.formatPlaytime(remaining)));
+                    sender.sendMessage(m("claim.already-claimed-cooldown",
+                            args[1], ColorUtil.formatPlaytime(remaining)));
                 } else {
-                    sender.sendMessage(m("already-claimed", "pack", args[1]));
+                    sender.sendMessage(m("claim.already-claimed", args[1]));
                 }
                 break;
             case NOT_UNLOCKED:
-                sender.sendMessage(m("not-unlocked", "pack", args[1]));
+                sender.sendMessage(m("pack.not-unlocked", args[1]));
                 GiftPack pack = mgr.getPack(args[1]);
                 if (pack != null) {
                     List<String> unmet = pack.getUnmetConditions(p, mgr);
                     if (!unmet.isEmpty()) {
-                        sender.sendMessage(m("not-unlocked-reasons"));
+                        sender.sendMessage(m("pack.not-unlocked-reasons"));
                         for (String s : unmet) {
-                            sender.sendMessage(m("condition-line", "text", s));
+                            sender.sendMessage(m("pack.condition-line", s));
                         }
                     }
                 }
                 break;
             case NO_SPACE:
-                sender.sendMessage(m("no-item-space",
-                        "need", String.valueOf(mgr.getPack(args[1]).getRequiredSlots()),
-                        "have", String.valueOf(countFree(p))));
+                sender.sendMessage(m("claim.no-item-space",
+                        String.valueOf(mgr.getPack(args[1]).getRequiredSlots()),
+                        String.valueOf(countFree(p))));
                 break;
             case GRANT_FAILED:
-                sender.sendMessage(m("grant-failed", "pack", args[1]));
+                sender.sendMessage(m("claim.grant-failed", args[1]));
                 break;
             case SUCCESS:
-                sender.sendMessage(m("claimed", "pack", args[1]));
+                sender.sendMessage(m("claim.claimed", args[1]));
                 break;
         }
         return true;
@@ -261,33 +261,33 @@ public class GiftLoftCommand implements org.bukkit.command.CommandExecutor, TabC
 
     private boolean cmdReload(CommandSender sender) {
         plugin.reloadAll();
-        sender.sendMessage(m("reload-success", "count", String.valueOf(mgr.getPacks().size())));
+        sender.sendMessage(m("admin.reload-success", String.valueOf(mgr.getPacks().size())));
         return true;
     }
 
     private boolean cmdGive(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage(m("pack-not-found", "pack", ""));
+            sender.sendMessage(m("pack.not-found", ""));
             return true;
         }
         Player target = Bukkit.getPlayerExact(args[1]);
         if (target == null) {
-            sender.sendMessage(m("player-offline", "player", args[1]));
+            sender.sendMessage(m("admin.player-offline", args[1]));
             return true;
         }
         GiftLoftManager.ClaimResult res = mgr.adminGive(target, args[2]);
         switch (res) {
             case NOT_FOUND:
-                sender.sendMessage(m("pack-not-found", "pack", args[2]));
+                sender.sendMessage(m("pack.not-found", args[2]));
                 break;
             case NO_SPACE:
-                sender.sendMessage(m("admin-gave-fail", "pack", args[2], "player", args[1], "reason", "背包空间不足"));
+                sender.sendMessage(m("admin.gave-fail", args[1], args[2], "背包空间不足"));
                 break;
             case GRANT_FAILED:
-                sender.sendMessage(m("admin-gave-fail", "pack", args[2], "player", args[1], "reason", "奖励发放异常，已回滚领取状态"));
+                sender.sendMessage(m("admin.gave-fail", args[1], args[2], "奖励发放异常，已回滚领取状态"));
                 break;
             case SUCCESS:
-                sender.sendMessage(m("admin-gave", "pack", args[2], "player", args[1]));
+                sender.sendMessage(m("admin.gave", args[1], args[2]));
                 break;
         }
         return true;
@@ -295,7 +295,7 @@ public class GiftLoftCommand implements org.bukkit.command.CommandExecutor, TabC
 
     private boolean cmdReset(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage(m("pack-not-found", "pack", ""));
+            sender.sendMessage(m("pack.not-found", ""));
             return true;
         }
         UUID uuid = null;
@@ -304,12 +304,12 @@ public class GiftLoftCommand implements org.bukkit.command.CommandExecutor, TabC
             uuid = online.getUniqueId();
         } else {
             // 尝试按名称在历史数据中查找（离线玩家取最后已知 UUID 不可得，这里仅支持在线）
-            sender.sendMessage(m("player-offline", "player", args[1]));
+            sender.sendMessage(m("admin.player-offline", args[1]));
             return true;
         }
         mgr.resetClaimed(uuid, args[2]);
         mgr.getData().save();
-        sender.sendMessage(m("admin-reset", "pack", args[2], "player", args[1]));
+        sender.sendMessage(m("admin.reset", args[1], args[2]));
         return true;
     }
 
@@ -323,48 +323,48 @@ public class GiftLoftCommand implements org.bukkit.command.CommandExecutor, TabC
      */
     private boolean cmdMigrate(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(m("migrate-usage"));
+            sender.sendMessage(m("admin.migrate-usage"));
             return true;
         }
         StorageType target = StorageType.fromId(args[1]);
         if (target == null) {
-            sender.sendMessage(m("migrate-invalid-backend", "backend", args[1]));
+            sender.sendMessage(m("admin.migrate-invalid-backend", args[1]));
             return true;
         }
         StorageType source;
         if (args.length >= 3) {
             source = StorageType.fromId(args[2]);
             if (source == null) {
-                sender.sendMessage(m("migrate-invalid-backend", "backend", args[2]));
+                sender.sendMessage(m("admin.migrate-invalid-backend", args[2]));
                 return true;
             }
         } else {
             source = plugin.getStorageManager().getPrimary().getType();
         }
         if (source == target) {
-            sender.sendMessage(m("migrate-same", "backend", target.getId()));
+            sender.sendMessage(m("admin.migrate-same", target.getId()));
             return true;
         }
         if (!plugin.getStorageManager().isEnabled(source)) {
-            sender.sendMessage(m("migrate-backend-disabled", "backend", source.getId()));
+            sender.sendMessage(m("admin.migrate-backend-disabled", source.getId()));
             return true;
         }
         if (!plugin.getStorageManager().isEnabled(target)) {
-            sender.sendMessage(m("migrate-backend-disabled", "backend", target.getId()));
+            sender.sendMessage(m("admin.migrate-backend-disabled", target.getId()));
             return true;
         }
-        sender.sendMessage(m("migrate-start", "from", source.getId(), "to", target.getId()));
+        sender.sendMessage(m("admin.migrate-start", source.getId(), target.getId()));
         // 迁移可能较重，放到异步线程执行，完成后回到主线程通知发送者
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 int count = plugin.getStorageManager().migrate(source, target, true);
                 final int n = count;
                 plugin.getServer().getScheduler().runTask(plugin, () ->
-                        sender.sendMessage(m("migrate-done", "from", source.getId(), "to", target.getId(), "count", String.valueOf(n))));
+                        sender.sendMessage(m("admin.migrate-done", source.getId(), target.getId(), String.valueOf(n))));
             } catch (Exception e) {
                 final String err = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
                 plugin.getServer().getScheduler().runTask(plugin, () ->
-                        sender.sendMessage(m("migrate-fail", "from", source.getId(), "to", target.getId(), "reason", err)));
+                        sender.sendMessage(m("admin.migrate-fail", source.getId(), target.getId(), err)));
             }
         });
         return true;
@@ -373,8 +373,8 @@ public class GiftLoftCommand implements org.bukkit.command.CommandExecutor, TabC
     // ---------------- 辅助 ----------------
 
     private void sendHelp(CommandSender sender, String label) {
-        for (String line : plugin.getMessageConfig().getStringList("help")) {
-            sender.sendMessage(ColorUtil.color(line).replace("%label%", label));
+        for (String line : plugin.msgList("help")) {
+            sender.sendMessage(line);
         }
         // 管理员可见时补充权限节点提示
         if (sender.hasPermission("soysgiftloft.admin")) {
@@ -392,14 +392,8 @@ public class GiftLoftCommand implements org.bukkit.command.CommandExecutor, TabC
         return n;
     }
 
-    private String m(String path, String... kv) {
-        String s = ColorUtil.color(plugin.getMessageConfig().getString(path, ""));
-        if (kv != null) {
-            for (int i = 0; i + 1 < kv.length; i += 2) {
-                s = s.replace("%" + kv[i] + "%", kv[i + 1]);
-            }
-        }
-        return s;
+    private String m(String key, Object... args) {
+        return plugin.msg(key, args);
     }
 
     // ---------------- Tab 补全 ----------------

@@ -191,9 +191,9 @@ public class GiftLoftManager {
                     + " 相关功能已自动降级（不影响其余功能，可单机调试）。");
         }
         if (player != null) {
-            String msg = message("dependency-missing", "plugin", pluginName, "feature", feature);
+            String msg = message("general.dependency-missing", pluginName, feature);
             if (msg != null && !msg.isEmpty()) {
-                player.sendMessage(ColorUtil.color(msg));
+                player.sendMessage(msg);
             }
         }
     }
@@ -414,7 +414,7 @@ public class GiftLoftManager {
             }
         }
         if (fx.isBroadcast()) {
-            String msg = message("claim-broadcast", "pack", pack.getDisplay(), "player", player.getName());
+            String msg = message("claim.broadcast", player.getName(), pack.getDisplay());
             if (msg != null && !msg.isEmpty()) {
                 Bukkit.broadcastMessage(msg);
             }
@@ -471,23 +471,21 @@ public class GiftLoftManager {
             // 仅提示：已解锁、当前可领取（未领取/不在冷却中）的礼包
             if (pack.isUnlocked(player, this) && !isPackClaimed(uuid, pack)) {
                 done.add(id);
-                String chat = message("notify-unlock", "pack", pack.getDisplay(),
-                        "desc", pack.getDescription(), "id", id);
+                String chat = message("notify.unlock", pack.getDisplay(), pack.getDescription());
                 if (chat != null && !chat.isEmpty()) {
                     player.sendMessage(chat);
                 }
-                String title = message("notify-title", "pack", pack.getDisplay(), "id", id);
-                String subtitle = message("notify-subtitle", "pack", pack.getDisplay(), "id", id);
+                String title = message("notify.title");
+                String subtitle = message("notify.subtitle", pack.getDisplay(), id);
                 if (title != null || subtitle != null) {
                     try {
-                        player.sendTitle(
-                                ColorUtil.color(title == null ? "" : title),
-                                ColorUtil.color(subtitle == null ? "" : subtitle),
+                        player.sendTitle(title == null ? "" : title,
+                                subtitle == null ? "" : subtitle,
                                 10, 60, 10);
                     } catch (NoSuchMethodError ignored) {
                         // 极旧版本不支持 sendTitle，回退到聊天
                         if (chat == null || chat.isEmpty()) {
-                            player.sendMessage(ColorUtil.color(title == null ? "" : title));
+                            player.sendMessage(title == null ? "" : title);
                         }
                     }
                 }
@@ -510,17 +508,7 @@ public class GiftLoftManager {
 
     // ---------------- 消息工具 ----------------
 
-    private String message(String path, String... kv) {
-        FileConfiguration msgs = plugin.getMessageConfig();
-        if (msgs == null) {
-            return "";
-        }
-        String s = ColorUtil.color(msgs.getString(path, ""));
-        if (kv != null) {
-            for (int i = 0; i + 1 < kv.length; i += 2) {
-                s = s.replace("%" + kv[i] + "%", kv[i + 1]);
-            }
-        }
-        return s;
+    public String message(String key, Object... args) {
+        return plugin.msg(key, args);
     }
 }

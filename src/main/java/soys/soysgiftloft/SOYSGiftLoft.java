@@ -1,23 +1,33 @@
 package soys.soysgiftloft;
 
+import com.github.cocosoys.mc.soyshttpovermc.api.event.SoysReadyEvent;
 import net.milkbowl.vault.economy.Economy;
 import org.black_ixx.playerpoints.PlayerPoints;
 import org.black_ixx.playerpoints.PlayerPointsAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import soys.soysgiftloft.command.GiftLoftCommand;
 import soys.soysgiftloft.config.ConfigManager;
+import soys.soysgiftloft.erp.SoysGiftLoftErpExpansion;
 import soys.soysgiftloft.listener.GiftLoftListener;
 import soys.soysgiftloft.manager.GiftLoftManager;
 import soys.soysgiftloft.placeholder.GiftLoftExpansion;
+import soys.soysgiftloft.spring.SoysGiftLoftExpansion;
 import soys.soysgiftloft.storage.StorageManager;
+
+import soys.soysgiftloft.util.ColorUtil;
 
 import java.io.File;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * SOYSGiftLoft —— 礼品阁插件主类。
@@ -27,22 +37,37 @@ import java.nio.charset.StandardCharsets;
  * <p>存储策略（与 SOYSLinkTeam 一致）：所有启用的后端按优先级选主存储
  * （MYSQL &gt; SQLITE &gt; YAML），其余作为辅助存储被镜像写入；MySQL 不可用时自动降级。
  * 启动时若开启 migrate-on-startup，会把 YAML 存量数据迁移进 MySQL。</p>
+ *
+ * <p><b>Web 管理接口</b>：自 v1.9.0 起不再内置 HttpServer，改为声明 SOYSHTTPOverMC
+ * 模块扩展（{@link SoysGiftLoftExpansion}），端点由网关统一挂在
+ * {@code /api/plugins/SOYSGiftLoft/*}；装 MCERP 时另注册 {@link SoysGiftLoftErpExpansion}
+ * 提供 ERP 菜单与 {@code /erp/*} 管理面端点。两者均按 {@code web.enabled} 开关生效。</p>
  */
-public final class SOYSGiftLoft extends JavaPlugin {
+public final class SOYSGiftLoft extends JavaPlugin implements Listener {
 
     private Economy economy;
     private PlayerPointsAPI playerPoints;
     private GiftLoftManager manager;
     private ConfigManager configManager;
     private StorageManager storageManager;
-    private soys.soysgiftloft.web.WebServer webServer;
+
+    /** SOYSHTTPOverMC 机器管理 API 扩展（/api/plugins/SOYSGiftLoft/*；未装 SOYS 时为 null）。 */
+    private SoysGiftLoftExpansion soysExpansion;
+
+    /** MCERP 管理面扩展（ERP 菜单 + /erp/* 端点；未装 MCERP 时为 null）。 */
+    private SoysGiftLoftErpExpansion erpExpansion;
+
+    /** 插件启用时刻（毫秒），用于 status 端点的 uptimeSeconds。 */
+    private long enabledAt;
 
     private File giftPackFile;
     private FileConfiguration giftPackConfig;
 
-    private File messageFile;
+    /** 所有语言键的统一前缀（插件名小写），避免与其他插件的 i18n 命名空间冲突。 */
+    private static final String LANG_PREFIX = "soysgiftloft.";
+
     private FileConfiguration messageConfig;
-    private String messageLanguage = "zh";
+    private String messageLanguage = "zh_cn";
 
     private boolean debug = false;
 
@@ -51,13 +76,14 @@ public final class SOYSGiftLoft extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        enabledAt = System.currentTimeMillis();
         // 1. 主配置文件与访问器
         saveDefaultConfig();
         configManager = new ConfigManager(this);
         debug = configManager.isDebug();
         messageLanguage = configManager.getLanguage();
 
-        // 2. 消息配置文件（多语言：lang/<language>.yml，回退 message.yml -> 内置 lang/zh.yml）
+        // 2. 消息配置文件（多语言：language/<lang>.yml，对齐 SOYSHTTPOverMC 约定）
         reloadMessages();
 
         // 3. 礼包配置文件
@@ -86,6 +112,8 @@ public final class SOYSGiftLoft extends JavaPlugin {
             getCommand("sgiftloft").setTabCompleter(cmd);
         }
         Bukkit.getPluginManager().registerEvents(new GiftLoftListener(this), this);
+        // 主类自身作为监听器：承接 SoysReadyEvent（SOYS 晚于本插件就绪时补挂扩展）
+        Bukkit.getPluginManager().registerEvents(this, this);
 
         // 9. 自动保存任务（在线时长 + 领取状态）
         long interval = configManager.getAutoSaveIntervalTicks();
@@ -119,10 +147,8 @@ public final class SOYSGiftLoft extends JavaPlugin {
         }
 
         // 11. Web / 后台管理接口（默认关闭，按 config.yml 中 web.enabled 启用）
-        if (configManager.isWebEnabled()) {
-            webServer = new soys.soysgiftloft.web.WebServer(this);
-            webServer.start();
-        }
+        //     自 v1.9.0 起改为 SOYSHTTPOverMC 模块扩展注册，不再自建 HttpServer
+        setupWebApi();
 
         // 依赖状态汇总：软依赖缺失时自动降级，便于单机调试
         getLogger().info("[依赖状态] Vault=" + (economy != null ? "已加载" : "未加载(已降级)")
@@ -136,9 +162,14 @@ public final class SOYSGiftLoft extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (webServer != null) {
-            webServer.stop();
-            webServer = null;
+        // Web 接口：反注册扩展（端点 / ERP 菜单同步摘除），先于数据落盘
+        if (erpExpansion != null) {
+            erpExpansion.unregister();
+            erpExpansion = null;
+        }
+        if (soysExpansion != null) {
+            soysExpansion.unregister();
+            soysExpansion = null;
         }
         if (manager != null) {
             for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) {
@@ -213,7 +244,88 @@ public final class SOYSGiftLoft extends JavaPlugin {
             setupPlayerPoints();
         } else if ("PlaceholderAPI".equals(name)) {
             setupPlaceholderAPI();
+        } else if ("SOYSHTTPOverMC".equals(name) || "MCERP".equals(name)) {
+            // 网关 / ERP 晚于本插件启用：补挂 Web 管理接口
+            setupWebApi();
         }
+    }
+
+    // ---------------- Web 管理接口（SOYSHTTPOverMC / MCERP 扩展） ----------------
+
+    /**
+     * 挂载 Web 管理接口（幂等，可重复调用）。
+     *
+     * <p>注册两个互不影响的模块扩展：</p>
+     * <ul>
+     *   <li>{@link SoysGiftLoftExpansion} —— 机器管理 API，端点
+     *       {@code /api/plugins/SOYSGiftLoft/*}，凭 {@code Authorization: Bearer <api-token>} 访问；</li>
+     *   <li>{@link SoysGiftLoftErpExpansion} —— 仅当装有 MCERP 时注册，提供 ERP 菜单与
+     *       {@code /erp/*} 端点，认证/授权走网关登录态 + {@code soysgiftloft.erp.*} 权限。</li>
+     * </ul>
+     *
+     * <p>SOYS 网关未就绪（本插件先于 SOYS 加载）时注册会失败，此时由
+     * {@link #onSoysReady(SoysReadyEvent)} 在其就绪事件里重试。</p>
+     */
+    private void setupWebApi() {
+        if (configManager == null || !configManager.isWebEnabled()) {
+            return;
+        }
+        if (!Bukkit.getPluginManager().isPluginEnabled("SOYSHTTPOverMC")) {
+            getLogger().warning("web.enabled=true 但未检测到 SOYSHTTPOverMC，Web 管理接口未挂载"
+                    + "（安装该插件后执行 /sgiftloft reload 即可）。");
+            return;
+        }
+        registerSoysExpansion();
+        registerErpExpansion();
+    }
+
+    /**
+     * 注册机器管理 API 扩展（已注册则跳过）。
+     */
+    private void registerSoysExpansion() {
+        if (soysExpansion != null) {
+            return;
+        }
+        SoysGiftLoftExpansion expansion = new SoysGiftLoftExpansion(this);
+        if (expansion.register()) {
+            soysExpansion = expansion;
+            getLogger().info("Web 管理接口已挂载：/api/plugins/SOYSGiftLoft/*（Bearer token 鉴权）。");
+        } else {
+            getLogger().warning("Web 管理接口注册失败（SOYS 网关未就绪或 identifier 冲突），"
+                    + "将由 SoysReadyEvent 重试。");
+        }
+    }
+
+    /**
+     * 注册 MCERP 管理面扩展（未装 MCERP 时静默跳过；已注册则跳过）。
+     *
+     * <p>注意：本方法内对 {@link SoysGiftLoftErpExpansion} 的首次主动引用才触发其父类
+     * {@code McerpExpansion} 的类解析，故 {@code isPluginEnabled("MCERP")} 前置守卫可保证
+     * 未安装 MCERP 时不出现 NoClassDefFoundError。</p>
+     */
+    private void registerErpExpansion() {
+        if (erpExpansion != null) {
+            return;
+        }
+        if (!Bukkit.getPluginManager().isPluginEnabled("MCERP")) {
+            return;
+        }
+        SoysGiftLoftErpExpansion expansion = new SoysGiftLoftErpExpansion(this);
+        if (expansion.register()) {
+            erpExpansion = expansion;
+            getLogger().info("MCERP 管理面已接入：菜单「礼品阁」+ /api/plugins/SOYSGiftLoft/erp/*。");
+        } else {
+            getLogger().warning("MCERP 管理面注册失败（SOYS 网关未就绪或 identifier 冲突），"
+                    + "可由 /mcerp reload 或 /soyshttp reload 兜底重试。");
+        }
+    }
+
+    /**
+     * SOYS 网关就绪事件：解决「本插件先于 SOYS 加载」时的延迟注册（同步事件，主线程）。
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onSoysReady(SoysReadyEvent event) {
+        setupWebApi();
     }
 
     // ---------------- 配置访问 ----------------
@@ -235,48 +347,93 @@ public final class SOYSGiftLoft extends JavaPlugin {
      * 加载多语言消息文件。
      * <p>加载顺序（优先级从高到低）：</p>
      * <ol>
-     *   <li>lang/&lt;language&gt;.yml（用户当前语言，缺失则从 jar 释放）</li>
-     *   <li>message.yml（旧版独立消息文件，兼容升级前的自定义）</li>
-     *   <li>jar 内置 lang/zh.yml（最终兜底，保证新键可用）</li>
+     *   <li>language/&lt;lang&gt;.yml（用户当前语言，缺失则从 jar 释放）</li>
+     *   <li>jar 内置 language/zh_cn.yml（最终兜底，保证所有键可用）</li>
      * </ol>
+     * <p>语言代码经 {@link #normalizeLanguage(String)} 归一化为小写下划线（zh/zh_CN/zh-CN → zh_cn）。</p>
      */
     public void reloadMessages() {
         if (configManager != null) {
-            messageLanguage = configManager.getLanguage();
+            messageLanguage = normalizeLanguage(configManager.getLanguage());
         }
 
-        // 最终兜底：jar 内置 lang/zh.yml
+        // 最终兜底：jar 内置 language/zh_cn.yml
         YamlConfiguration defaults = YamlConfiguration.loadConfiguration(
-                new InputStreamReader(getResource("lang/zh.yml"), StandardCharsets.UTF_8));
-
-        // 旧版 message.yml 兼容层：以 jar 内置 zh 为默认
-        if (messageFile == null) {
-            messageFile = new File(getDataFolder(), "message.yml");
-        }
-        if (!messageFile.exists()) {
-            saveResource("message.yml", false);
-        }
-        YamlConfiguration legacy = YamlConfiguration.loadConfiguration(messageFile);
-        legacy.setDefaults(defaults);
+                new InputStreamReader(getResource("language/zh_cn.yml"), StandardCharsets.UTF_8));
 
         // 当前语言文件
-        File langFile = new File(getDataFolder(), "lang/" + messageLanguage + ".yml");
+        File langFile = new File(getDataFolder(), "language/" + messageLanguage + ".yml");
         if (!langFile.exists()) {
-            // 从 jar 释放对应语言文件；若该语言在 jar 中不存在则回退到 zh
-            String res = "lang/" + messageLanguage + ".yml";
+            String res = "language/" + messageLanguage + ".yml";
             if (getResource(res) != null) {
                 saveResource(res, false);
             } else {
-                messageLanguage = "zh";
-                langFile = new File(getDataFolder(), "lang/zh.yml");
+                messageLanguage = "zh_cn";
+                langFile = new File(getDataFolder(), "language/zh_cn.yml");
                 if (!langFile.exists()) {
-                    saveResource("lang/zh.yml", false);
+                    saveResource("language/zh_cn.yml", false);
                 }
             }
         }
         YamlConfiguration lang = YamlConfiguration.loadConfiguration(langFile);
-        lang.setDefaults(legacy);
+        lang.setDefaults(defaults);
         this.messageConfig = lang;
+    }
+
+    /**
+     * 归一化语言代码为小写下划线形式（zh / zh_CN / zh-CN / en_US / en-US → zh_cn / en_us）。
+     */
+    private String normalizeLanguage(String raw) {
+        if (raw == null || raw.isEmpty()) {
+            return "zh_cn";
+        }
+        String s = raw.trim().toLowerCase().replace('-', '_');
+        // 兼容短代码 zh / en
+        if ("zh".equals(s)) return "zh_cn";
+        if ("en".equals(s)) return "en_us";
+        return s;
+    }
+
+    /**
+     * 读取一条消息（自动加 soysoygiftloft. 前缀、自动转色、自动替换 {0}/{1}... 占位符）。
+     *
+     * @param key 短键，如 "claim.already-claimed"（不含前缀）
+     * @param args 按顺序替换 {0} {1} ... 的实参
+     * @return 替换后的消息字符串；键缺失时返回空字符串
+     */
+    public String msg(String key, Object... args) {
+        if (messageConfig == null) {
+            return "";
+        }
+        String raw = messageConfig.getString(LANG_PREFIX + key, "");
+        if (raw.isEmpty()) {
+            return "";
+        }
+        raw = ColorUtil.color(raw);
+        if (args != null) {
+            for (int i = 0; i < args.length; i++) {
+                raw = raw.replace("{" + i + "}", String.valueOf(args[i]));
+            }
+        }
+        return raw;
+    }
+
+    /**
+     * 读取多行消息（如 help），按 \n 拆分为列表。
+     */
+    public List<String> msgList(String key) {
+        List<String> out = new ArrayList<>();
+        if (messageConfig == null) {
+            return out;
+        }
+        String raw = messageConfig.getString(LANG_PREFIX + key, "");
+        if (raw.isEmpty()) {
+            return out;
+        }
+        for (String line : raw.split("\n")) {
+            out.add(ColorUtil.color(line));
+        }
+        return out;
     }
 
     public FileConfiguration getGiftPackConfig() {
@@ -302,20 +459,27 @@ public final class SOYSGiftLoft extends JavaPlugin {
         reloadGiftPacks();
         manager.invalidateDefaultEffects();
         manager.load();
-        // Web 接口配置变更（端口/token/启用状态）立即生效
-        if (webServer == null && configManager.isWebEnabled()) {
-            webServer = new soys.soysgiftloft.web.WebServer(this);
-            webServer.start();
-        } else if (webServer != null) {
-            webServer.reloadFromConfig();
-            if (!webServer.isRunning()) {
-                webServer = null;
+        // Web 接口：web.enabled 由关转开时补挂扩展（token 变更被适配器实时读取，无需重注册）
+        if (configManager.isWebEnabled()) {
+            setupWebApi();
+        } else if (soysExpansion != null) {
+            if (erpExpansion != null) {
+                erpExpansion.unregister();
+                erpExpansion = null;
             }
+            soysExpansion.unregister();
+            soysExpansion = null;
+            getLogger().info("web.enabled=false，Web 管理接口已卸载。");
         }
     }
 
     public GiftLoftManager getManager() {
         return manager;
+    }
+
+    /** 插件启用时刻（status 端点 uptimeSeconds 用）。 */
+    public long getEnabledAt() {
+        return enabledAt;
     }
 
     public ConfigManager getConfigManager() {
