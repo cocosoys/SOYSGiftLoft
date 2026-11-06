@@ -1,12 +1,13 @@
-package soys.soysgiftloft.erp;
+package soys.soysgiftloft;
 
 import com.github.cocosoys.mc.mcerp.ErpMenus;
 import com.github.cocosoys.mc.mcerp.McerpExpansion;
-import soys.soysgiftloft.SOYSGiftLoft;
 import soys.soysgiftloft.spring.controller.ErpGiftPackController;
 import soys.soysgiftloft.spring.controller.ErpGiftPlayerController;
 import soys.soysgiftloft.spring.impl.GiftLoftWebServiceImpl;
+import soys.soysgiftloft.spring.impl.GiftPackAdminServiceImpl;
 import soys.soysgiftloft.spring.service.GiftLoftWebService;
+import soys.soysgiftloft.spring.service.GiftPackAdminService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +15,7 @@ import java.util.List;
 /**
  * 礼品阁的 MCERP 管理面接入（ERP 侧端点 + 菜单登记）。
  *
- * <p>与机器管理 API 扩展（{@link soys.soysgiftloft.spring.SoysGiftLoftExpansion}）的分工：</p>
+ * <p>与机器管理 API 扩展（{@link SoysGiftLoftExpansion}）的分工：</p>
  * <ul>
  *   <li>本扩展仅在服务器装有 MCERP 时由主类实例化并注册（未装则礼品阁独立运行）；</li>
  *   <li>端点同样落在 {@code /api/plugins/SOYSGiftLoft/erp/*}（owner 插件名决定前缀，
@@ -91,8 +92,9 @@ public final class SoysGiftLoftErpExpansion extends McerpExpansion {
     protected List<Object> buildControllers() {
         if (controllers == null) {
             GiftLoftWebService service = new GiftLoftWebServiceImpl(plugin);
+            GiftPackAdminService adminService = new GiftPackAdminServiceImpl(plugin, plugin.getManager());
             controllers = new ArrayList<>();
-            controllers.add(new ErpGiftPackController(service));
+            controllers.add(new ErpGiftPackController(service, adminService));
             controllers.add(new ErpGiftPlayerController(service));
         }
         return controllers;

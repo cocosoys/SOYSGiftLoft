@@ -1,7 +1,6 @@
-package soys.soysgiftloft.spring;
+package soys.soysgiftloft;
 
 import com.github.cocosoys.mc.soyshttpovermc.api.SoysExpansion;
-import soys.soysgiftloft.SOYSGiftLoft;
 import soys.soysgiftloft.spring.controller.GiftLoftAdminController;
 import soys.soysgiftloft.spring.controller.GiftLoftPackController;
 import soys.soysgiftloft.spring.controller.GiftLoftPlayerController;
@@ -30,7 +29,7 @@ import java.util.List;
  * <p>控制器实例在 {@link #buildControllers()} 内<b>缓存</b>：注册与反注册必须使用
  * 同一批实例（ApiRegistry 按实例反注册），故首次调用时构建并保留引用。</p>
  *
- * <p>ERP 管理面端点（{@code /erp/*}）由 {@link soys.soysgiftloft.erp.SoysGiftLoftErpExpansion}
+ * <p>ERP 管理面端点（{@code /erp/*}）由 {@link SoysGiftLoftErpExpansion}
  * 单独注册（仅当服务器装有 MCERP 时），与本扩展互不影响。</p>
  */
 public class SoysGiftLoftExpansion extends SoysExpansion {
