@@ -307,6 +307,7 @@ public class GiftLoftWebServiceImpl implements GiftLoftWebService {
         d.setDisplay(pack.getDisplay());
         d.setDescription(pack.getDescription());
         d.setClaimMode(pack.getClaimMode().name());
+        d.setRarity(pack.getRarity() == null ? "COMMON" : pack.getRarity().name());
         d.setCooldown(pack.getCooldownSeconds());
         d.setRequiredSlots(pack.getRequiredSlots());
         d.setConditionTypes(conditionTypes(pack));

@@ -53,6 +53,25 @@ public class GiftPack {
     }
 
     /**
+     * 礼包稀有度（仅用于展示分级，不影响领取逻辑）。
+     * 对应前端 Minecraft 16 色板徽章：普通 / 优秀 / 稀有 / 史诗 / 传说 / 神话。
+     */
+    public enum Rarity {
+        COMMON, UNCOMMON, RARE, EPIC, LEGENDARY, MYTHIC;
+
+        public static Rarity parse(String raw, Rarity def) {
+            if (raw == null) {
+                return def;
+            }
+            try {
+                return valueOf(raw.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                return def;
+            }
+        }
+    }
+
+    /**
      * 领取特效配置。全部字段可选；任一为空则跳过对应效果。
      */
     public static class ClaimEffects {
@@ -102,10 +121,11 @@ public class GiftPack {
     private final ClaimMode claimMode;
     private final long cooldownSeconds;   // 仅 COOLDOWN 模式有意义
     private final ClaimEffects claimEffects;
+    private final Rarity rarity;
 
     public GiftPack(String id, String display, String description,
                     ConditionNode root, List<Reward> rewards,
-                    ClaimMode claimMode, long cooldownSeconds, ClaimEffects claimEffects) {
+                    ClaimMode claimMode, long cooldownSeconds, ClaimEffects claimEffects, Rarity rarity) {
         this.id = id;
         this.display = display;
         this.description = description;
@@ -114,6 +134,7 @@ public class GiftPack {
         this.claimMode = claimMode;
         this.cooldownSeconds = cooldownSeconds;
         this.claimEffects = claimEffects;
+        this.rarity = rarity;
     }
 
     /**
@@ -159,8 +180,9 @@ public class GiftPack {
         }
 
         ClaimEffects fx = ClaimEffects.fromSection(sec.getConfigurationSection("claim-effects"));
+        Rarity rarity = Rarity.parse(sec.getString("rarity", "COMMON"), Rarity.COMMON);
 
-        return new GiftPack(id, display, description, root, rewards, mode, cooldown, fx);
+        return new GiftPack(id, display, description, root, rewards, mode, cooldown, fx, rarity);
     }
 
     /**
@@ -241,5 +263,10 @@ public class GiftPack {
 
     public ClaimEffects getClaimEffects() {
         return claimEffects;
+    }
+
+    /** 稀有度（展示分级用）。 */
+    public Rarity getRarity() {
+        return rarity;
     }
 }

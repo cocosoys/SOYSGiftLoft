@@ -1,13 +1,13 @@
 # ============================================
 # SOYSGiftLoft 主配置文件
-# 消息文本已拆分至 message.yml
+# 消息文本已拆分至多语言文件（language/zh_cn.yml、language/en_us.yml）
 # 礼包定义见 giftpacks.yml
 # ============================================
 
 general:
   # 调试模式
   debug: false
-  # 语言文件标识，对应 lang/<language>.yml（内置 zh / en，可自行扩展）
+  # 语言文件标识，对应 language/<language>.yml（内置 zh_cn / en_us，可自行扩展）
   language: "zh"
   # 自动检测礼包解锁并提示玩家（秒），0 关闭。
   # 开启后会按此间隔轮询在线玩家，新解锁且当前可领取的礼包会以私聊+标题提示（每个礼包仅提示一次）

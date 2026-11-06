@@ -5,7 +5,7 @@
 [![Build](https://img.shields.io/badge/build-Maven-blue.svg)](https://maven.apache.org/)
 [![Java](https://img.shields.io/badge/java-8-orange.svg)](https://www.oracle.com/java/technologies/javase/javase8-archive-downloads.html)
 [![Platform](https://img.shields.io/badge/platform-Spigot%201.12.2-green.svg)](https://www.spigotmc.org/)
-[![Version](https://img.shields.io/badge/version-1.8.0-brightgreen.svg)](#)
+[![Version](https://img.shields.io/badge/version-1.9.0-brightgreen.svg)](#)
 
 ---
 
@@ -229,11 +229,10 @@ giftpacks:
 
 ### 多语言消息
 
-- `lang/zh.yml`：简体中文（默认）
-- `lang/en.yml`：英文
-- `message.yml`：旧版兼容层（升级前的自定义消息会保留）
+- `language/zh_cn.yml`：简体中文（默认）
+- `language/en_us.yml`：英文
 
-修改 `config.yml` 中的 `general.language` 切换语言，也可自行新增 `lang/xx.yml` 扩展其他语言。
+修改 `config.yml` 中的 `general.language` 切换语言（填 `zh_cn` / `en_us`），也可自行新增 `language/xx.yml` 扩展其他语言。
 
 ---
 
@@ -328,33 +327,45 @@ giftpacks:
 
 ## Web 管理接口
 
-本插件内置零依赖的 REST JSON 管理接口（基于 JDK `HttpServer`，不引入任何第三方库），用于远程查看与发放礼包。**默认关闭**，需在 `config.yml` 的 `web` 配置节手动启用：
+> v1.9.0 起，Web 接口由 **SOYSHTTPOverMC** 注解式 API 网关统一承载（监听地址 / 端口 / 路径前缀均在 SOYSHTTPOverMC 配置中管理，本插件**不再内置 HttpServer**）。端点统一落在 `/api/plugins/SOYSGiftLoft/*`。
+
+接口分两路：
+
+- **机器管理 API**（`/api/plugins/SOYSGiftLoft/*`）：远程查看与发放礼包，供脚本 / 外部系统调用。
+- **ERP 管理面**（`/api/plugins/SOYSGiftLoft/erp/*`）：装有 MCERP 时自动注册「礼品阁」菜单与页面，走 SOYS 原生登录态 + `soysgiftloft.erp.*` 权限镜像，无需额外令牌。
+
+**默认关闭**，在 `config.yml` 的 `web` 配置节启用（仅 `enabled` 与 `api-token` 生效；`host/port/path-prefix` 为 v1.8 内置 HttpServer 遗留键，已不再读取）：
 
 ```yaml
 web:
-  enabled: true          # 开启管理接口
-  host: "127.0.0.1"      # 监听地址；远程访问请改为 "0.0.0.0"
-  port: 8317
-  api-token: "请改为随机长字符串"  # 访问令牌
-  path-prefix: "/api"
+  enabled: false        # 是否向 SOYSHTTPOverMC 注册机器管理接口，默认关闭
+  api-token: "change-me" # 机器 API 的 Bearer 令牌（v1.8 兼容兜底）；强烈建议改为随机长字符串
+  # host / port / path-prefix 为 v1.8 内置 HttpServer 遗留配置，现已由 SOYSHTTPOverMC 接管，不再读取
 ```
 
-### 认证方式
+### 认证方式（机器 API）
 
-所有请求需携带请求头：`Authorization: Bearer <api-token>`，否则返回 `401`。
+机器 API 端点以 `@Anonymous` 暴露给网关认证门，身份校验由本插件令牌守卫完成，优先级如下：
 
-### 端点一览
+1. **网关凭证（优先）**：若请求携带 SOYSHTTPOverMC 签发的有效凭证（X-API-Key / Bearer / Cookie），直接放行——现代鉴权完全交给网关。
+2. **v1.8 兼容兜底**：未带网关凭证时，回退校验 `Authorization: Bearer <api-token>`（与 v1.8 完全一致，现有调用方零改动），否则返回 `401`。
+
+> **安全红线**：机器 API 端点绝不能依赖"请求是否携带了凭证形状"来判断放行（网关在 `@Anonymous` 路径仅解析不校验），必须以真实凭证校验结果为准。
+
+### 端点一览（机器 API）
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/status` | 插件概览：版本、礼包数、存储后端、在线人数、运行时长 |
-| GET | `/api/packs` | 礼包列表（含模式/条件类型/奖励数/所需背包格） |
-| GET | `/api/pack/<id>` | 单个礼包详情（含奖励摘要） |
-| GET | `/api/player/<name>` | 在线玩家状态（离线玩家请用下方 uuid 端点） |
-| GET | `/api/player?uuid=<uuid>` | 按 UUID 查询玩家状态（在线/离线均可） |
-| POST | `/api/player/<name>/give` | 发放礼包，表单 `pack=<id>`，可选 `force=true`（绕过条件/冷却，玩家需在线） |
-| POST | `/api/reset` | 重置领取状态，表单 `player=<玩家名或UUID>&pack=<id>`（可离线操作） |
-| POST | `/api/reload` | 重载全部配置 |
+| GET | `/api/plugins/SOYSGiftLoft/status` | 插件概览：版本、礼包数、存储后端、在线人数、运行时长 |
+| GET | `/api/plugins/SOYSGiftLoft/packs` | 礼包列表（含模式/条件类型/奖励数/所需背包格） |
+| GET | `/api/plugins/SOYSGiftLoft/pack/<id>` | 单个礼包详情（含奖励摘要） |
+| GET | `/api/plugins/SOYSGiftLoft/player/<name>` | 在线玩家状态（离线玩家请用下方 uuid 端点） |
+| GET | `/api/plugins/SOYSGiftLoft/player?uuid=<uuid>` | 按 UUID 查询玩家状态（在线/离线均可） |
+| POST | `/api/plugins/SOYSGiftLoft/player/<name>/give` | 发放礼包，表单 `pack=<id>`，可选 `force=true`（绕过条件/冷却，玩家需在线） |
+| POST | `/api/plugins/SOYSGiftLoft/reset` | 重置领取状态，表单 `player=<玩家名或UUID>&pack=<id>`（可离线操作） |
+| POST | `/api/plugins/SOYSGiftLoft/reload` | 重载全部配置 |
+
+> ERP 管理面端点（`/api/plugins/SOYSGiftLoft/erp/*`，如礼包 CRUD、玩家查询、发放/重置）由 MCERP 前端调用，走 SOYS 登录态 + `soysgiftloft.erp.*` 权限，详见 `docs/SOYSHTTPOverMC接入设计.md`。
 
 ### 玩家状态字段
 
@@ -374,21 +385,21 @@ web:
 ### 示例
 
 ```bash
-# 查询礼包列表
-curl -H "Authorization: Bearer mytoken" http://127.0.0.1:8317/api/packs
+# 查询礼包列表（<网关地址> 为 SOYSHTTPOverMC 实际监听的 host:port）
+curl -H "Authorization: Bearer mytoken" http://<网关地址>/api/plugins/SOYSGiftLoft/packs
 
 # 强制给在线玩家 Steve 发放 welcome 礼包
 curl -X POST -H "Authorization: Bearer mytoken" \
   -d "pack=welcome&force=true" \
-  http://127.0.0.1:8317/api/player/Steve/give
+  http://<网关地址>/api/plugins/SOYSGiftLoft/player/Steve/give
 
 # 重置玩家领取状态（可离线，传 UUID）
 curl -X POST -H "Authorization: Bearer mytoken" \
   -d "player=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx&pack=welcome" \
-  http://127.0.0.1:8317/api/reset
+  http://<网关地址>/api/plugins/SOYSGiftLoft/reset
 ```
 
-> **安全提示**：开放远程访问（`host: 0.0.0.0`）前务必修改 `api-token` 为高强度随机字符串；接口未提供 TLS，生产环境建议通过内网/VPN 或反向代理访问。
+> **安全提示**：开放远程访问前务必将 `web.api-token` 改为高强度随机字符串；接口未提供 TLS，生产环境建议通过内网/VPN 或反向代理访问。若使用网关凭证（X-API-Key），请遵循 SOYSHTTPOverMC 的密钥管理规范。
 
 ---
 
@@ -443,6 +454,14 @@ mvn clean package -DskipTests
 ---
 
 ## 版本历史
+
+### v1.9.0 — SOYSHTTPOverMC 网关接入 + ERP 管理面
+- Web 接口层改造为 **SOYSHTTPOverMC 注解式 API 网关**：退役内置 JDK HttpServer（`web` 包删除），端点迁移到 `/api/plugins/SOYSGiftLoft/*`
+- 机器 API 令牌守卫（C-secure）：优先委托网关凭证校验，v1.8 `web.api-token` Bearer 兜底，现有调用方零改动
+- 接入 MCERP 管理面：注册「礼品阁」菜单与 `/erp/*` 端点，走 SOYS 原生登录态 + `soysgiftloft.erp.*` 权限镜像（`@ApiPermission` 自动投影 F 按钮）
+- 响应契约由 `{success,data}` 迁移为 RuoYi 风格 `{code,msg,data}`（VO 字段序对齐旧序以保兼容）
+- 多语言体系迁移：`lang/` → `language/zh_cn.yml` + `language/en_us.yml`，i18n 键加 `soysgiftloft.` 前缀
+- ERP 礼包 CRUD：新增 `GiftPackAdminService` 直接写 `giftpacks.yml` 并同步内存（写盘在 worker 线程，内存重建收敛主线程）
 
 ### v1.8.0 — Web / 后台管理接口
 - 新增 `web/WebServer`：基于 JDK 内置 HttpServer 的零依赖 REST JSON 管理接口（默认关闭）

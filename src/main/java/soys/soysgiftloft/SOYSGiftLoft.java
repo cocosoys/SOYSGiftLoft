@@ -14,11 +14,11 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import soys.soysgiftloft.command.GiftLoftCommand;
 import soys.soysgiftloft.config.ConfigManager;
-import soys.soysgiftloft.erp.SoysGiftLoftErpExpansion;
 import soys.soysgiftloft.listener.GiftLoftListener;
 import soys.soysgiftloft.manager.GiftLoftManager;
 import soys.soysgiftloft.placeholder.GiftLoftExpansion;
-import soys.soysgiftloft.spring.SoysGiftLoftExpansion;
+import soys.soysgiftloft.shttp.SoysGiftLoftErpExpansion;
+import soys.soysgiftloft.shttp.SoysGiftLoftExpansion;
 import soys.soysgiftloft.storage.StorageManager;
 
 import soys.soysgiftloft.util.ColorUtil;
@@ -438,6 +438,11 @@ public final class SOYSGiftLoft extends JavaPlugin implements Listener {
 
     public FileConfiguration getGiftPackConfig() {
         return giftPackConfig;
+    }
+
+    /** giftpacks.yml 文件对象（ERP 写回用）。 */
+    public File getGiftPackFile() {
+        return giftPackFile;
     }
 
     public FileConfiguration getMessageConfig() {

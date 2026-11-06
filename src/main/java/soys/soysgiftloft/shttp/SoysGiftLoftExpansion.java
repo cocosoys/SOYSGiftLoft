@@ -1,6 +1,7 @@
-package soys.soysgiftloft;
+package soys.soysgiftloft.shttp;
 
 import com.github.cocosoys.mc.soyshttpovermc.api.SoysExpansion;
+import soys.soysgiftloft.SOYSGiftLoft;
 import soys.soysgiftloft.spring.controller.GiftLoftAdminController;
 import soys.soysgiftloft.spring.controller.GiftLoftPackController;
 import soys.soysgiftloft.spring.controller.GiftLoftPlayerController;
@@ -45,7 +46,7 @@ public class SoysGiftLoftExpansion extends SoysExpansion {
 
     @Override
     public String getIdentifier() {
-        return "soysgiftloft";
+        return "SOYSGiftLoft";
     }
 
     @Override

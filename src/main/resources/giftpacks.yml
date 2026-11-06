@@ -3,6 +3,11 @@
 #  每个礼包由以下部分组成：
 #    display            : 显示名称（支持颜色代码 &）
 #    description        : 一句话描述（用于列表展示）
+#    claim-mode         : 领取模式（ONCE/DAILY/WEEKLY/MONTHLY/COOLDOWN）
+#    rarity             : 稀有度（可选，仅用于 ERP 列表徽章展示，不影响领取逻辑）
+#                         可选值：COMMON 普通 / UNCOMMON 优秀 / RARE 稀有 /
+#                                 EPIC 史诗 / LEGENDARY 传说 / MYTHIC 神话
+#                         留空或非法值一律回退为 COMMON
 #    unlock-conditions  : 解锁条件列表（需“全部满足”才解锁）
 #    rewards            : 奖励列表（领取时依次发放）
 #
@@ -97,6 +102,7 @@ giftpacks:
     display: "&a新人礼包"
     description: "累计在线 1 小时即可领取"
     claim-mode: ONCE
+    rarity: COMMON
     unlock-conditions:
       - type: PLAYTIME
         value: 3600
@@ -123,6 +129,7 @@ giftpacks:
     display: "&6VIP 专属礼包"
     description: "持有 soysgiftloft.pack.vip 权限可领取"
     claim-mode: ONCE
+    rarity: LEGENDARY
     unlock-conditions:
       - type: PERMISSION
         value: soysgiftloft.pack.vip
@@ -142,6 +149,7 @@ giftpacks:
     display: "&e富豪礼包"
     description: "点券≥200 且 金币≥10000 可领取"
     claim-mode: ONCE
+    rarity: EPIC
     unlock-conditions:
       - type: POINTS
         value: 200

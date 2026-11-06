@@ -2,4 +2,7 @@
 .w*/
 target/
 TODO.md
-*.html
+/*.html
+*.log
+docs/*
+_shots/*

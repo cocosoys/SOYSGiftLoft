@@ -13,7 +13,7 @@
 | Web 容器 | 自建 `com.sun.net.httpserver.HttpServer`（`web.WebServer`，832 行） | SOYSHTTPOverMC 网关（注解式端点） |
 | 监听/端口/前缀 | 插件自管 `web.host/port/path-prefix` | 由 SOYSHTTPOverMC 统一管理，本插件不再读取 |
 | 端点命名空间 | `/api/...` | `/api/plugins/SOYSGiftLoft/...`（网关自动补前缀） |
-| 认证（机器 API） | 手写 `Authorization: Bearer` 校验 | `@Anonymous` + `TokenGuardedGiftLoftWebService` 装饰器（恒定时间比较） |
+| 认证（机器 API） | 手写 `Authorization: Bearer` 校验 | `@Anonymous` + `TokenGuardedGiftLoftWebService` 装饰器（**优先委托 SOYSHTTPOverMC `GatewayFilter.resolveCredential` 校验网关凭证，v1.8 `web.api-token` 仅作兜底**） |
 | 认证（ERP 管理面） | — | 网关原生登录态 + `soysgiftloft.erp.*` 权限镜像 |
 | 后端管理界面 | 无 | MCERP「礼品阁」菜单（后端先行，前端页面后置） |
 | 零依赖约束 | 手写 JSON | 复用 SOYS `JsonWriter` / `JsonReader`（消费 jackson-annotations，不打包） |
@@ -27,7 +27,7 @@
 ```
 soys.soysgiftloft
 ├─ spring/                              ← 新增：Web 接口层（SOYSHTTPOverMC）
-│  ├─ SoysGiftLoftExpansion             模块扩展入口（机器 API，identifier=soysgiftloft）
+│  ├─ SoysGiftLoftExpansion             模块扩展入口（机器 API，identifier=SOYSGiftLoft）
 │  ├─ controller/                       端点声明（纯转发，无业务）
 │  │  ├─ GiftLoftStatusController       GET  /status
 │  │  ├─ GiftLoftPackController         GET  /packs、/pack/{id}
@@ -38,9 +38,9 @@ soys.soysgiftloft
 │  ├─ service/GiftLoftWebService        业务接口（10 个方法，全部返回 AjaxResult）
 │  ├─ impl/
 │  │  ├─ GiftLoftWebServiceImpl         业务实现（原 WebServer 的全部装配逻辑）
-│  │  └─ TokenGuardedGiftLoftWebService  装饰器：Bearer token 门禁
+│  │  └─ TokenGuardedGiftLoftWebService  装饰器：委托 SOYSHTTPOverMC 校验网关凭证 + v1.8 web.api-token 兜底
 │  └─ entity/vo/                        出参 VO（11）+ 入参表单（2）
-└─ erp/SoysGiftLoftErpExpansion         ← 新增：MCERP 管理面扩展（identifier=soysgiftlofterp）
+└─ erp/SoysGiftLoftErpExpansion         ← 新增：MCERP 管理面扩展（identifier=SOYSGiftLoft-ERP）
 ```
 
 **关键设计：装饰器而非基类**
@@ -53,6 +53,18 @@ GiftLoftWebService machineApi = new TokenGuardedGiftLoftWebService(plugin, impl)
 // erp 侧：直接用裸实现，认证交给网关 + @ApiPermission
 GiftLoftWebService erpApi = new GiftLoftWebServiceImpl(plugin);
 ```
+
+机器 API 端点标 `@Anonymous`，网关 AuthPolicy 对其跳过 token 校验（放行 401），故必须由装饰器自扛身份闸门。
+装饰器 `authorize()` 两级校验（C-secure）：
+
+1. **优先委托 SOYSHTTPOverMC**：实时取 `HttpOverMcPlugin.getGateway().resolveCredential(headers)`，
+   由网关统一校验 X-API-Key / Bearer / Cookie（对 `soys_api_key` 表或启用颁发器）——现代鉴权完全交给网关，自研零逻辑。
+2. **v1.8 `web.api-token` 兜底**：未带有效网关凭证时，回退 `config.yml → web.api-token` 的 `MessageDigest.isEqual`
+   恒定时间比较，保持与 v1.8 完全一致的契约，既有机器客户端无需改动。
+
+> **安全红线**：绝不可用 `ApiRequestContext.isAuthenticated()` 作闸门。`@Anonymous` 路径下网关仅
+> `extractPresentation`（解析）不 `resolveCredential`（校验），`isAuthenticated()` 仅表示"请求头带了凭证
+> 形状的材料"，乱填亦为真——直接放行即敞开 API。
 
 这样 v1.8 的调用语义（未带 token → 401）被完整保留，而 ERP 侧不会因缺 `Authorization: Bearer`
 被误拦（浏览器同源 Cookie 登录态下不会有该头）。
@@ -85,16 +97,17 @@ GiftLoftWebService erpApi = new GiftLoftWebServiceImpl(plugin);
 
 ## 4. 认证与授权（两套并行）
 
-### 4.1 机器 API —— Bearer token 装饰器
+### 4.1 机器 API —— 装饰器（委托网关 + v1.8 兜底）
 
 ```java
 // TokenGuardedGiftLoftWebService.authorize()
-String header = ctx.getHeaders().get("Authorization");   // 大小写不敏感
-boolean ok = MessageDigest.isEqual(expected, actual);     // 恒定时间比较，防时序侧信道
+GatewayFilter gateway = HttpOverMcPlugin.getInstance().getGateway();  // 实时取，兼容 /soyshttp reload 重建
+if (gateway != null && gateway.resolveCredential(ctx.getHeaders()) != null) return true; // 委托 SOYSHTTPOverMC
+// 兜底：config.yml → web.api-token，MessageDigest.isEqual 恒定时间比较
 ```
 
-失败统一返回 `AjaxResult.unauthorized("...")`（code 401）。token 来源 `config.yml → web.api-token`，
-**每次请求实时读取**，改配置后无需重注册扩展。
+失败统一返回 `AjaxResult.unauthorized("...")`（code 401）。网关凭证路径由 SOYSHTTPOverMC 统一校验；
+v1.8 兜底 token 来源 `config.yml → web.api-token`，**每次请求实时读取**，改配置后无需重注册扩展。
 
 ### 4.2 ERP 管理面 —— 网关登录态 + 权限节点
 

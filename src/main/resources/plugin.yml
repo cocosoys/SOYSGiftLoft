@@ -49,6 +49,15 @@ permissions:
   soysgiftloft.erp.pack.query:
     description: ERP-查看礼包详情
     default: op
+  soysgiftloft.erp.pack.create:
+    description: ERP-新建礼包
+    default: op
+  soysgiftloft.erp.pack.update:
+    description: ERP-更新礼包
+    default: op
+  soysgiftloft.erp.pack.remove:
+    description: ERP-删除礼包
+    default: op
   soysgiftloft.erp.player.query:
     description: ERP-查询玩家领取状态
     default: op

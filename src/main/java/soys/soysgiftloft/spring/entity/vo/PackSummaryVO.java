@@ -11,6 +11,7 @@ public class PackSummaryVO {
     private String display;
     private String description;
     private String claimMode;
+    private String rarity;
     private long cooldown;
     private int requiredSlots;
     private List<String> conditionTypes;
@@ -46,6 +47,14 @@ public class PackSummaryVO {
 
     public void setClaimMode(String claimMode) {
         this.claimMode = claimMode;
+    }
+
+    public String getRarity() {
+        return rarity;
+    }
+
+    public void setRarity(String rarity) {
+        this.rarity = rarity;
     }
 
     public long getCooldown() {
