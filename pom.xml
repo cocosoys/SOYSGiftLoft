@@ -55,9 +55,22 @@
         </plugin>
         </plugins>
         <resources>
+            <!-- 配置文件（yml/plugin.yml/language）保留过滤，支持 ${...} 占位符 -->
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
+                <excludes>
+                    <exclude>dist/**</exclude>
+                </excludes>
+            </resource>
+            <!-- 前端 dist 含二进制（.gz/.jpg/.png/.woff/.ttf/.ico），不可过滤，
+                 否则 maven-resources 按文本解码会抛 MalformedInputException -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <includes>
+                    <include>dist/**</include>
+                </includes>
             </resource>
         </resources>
     </build>

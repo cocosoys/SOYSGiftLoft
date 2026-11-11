@@ -3,11 +3,15 @@ package soys.soysgiftloft.shttp;
 import com.github.cocosoys.mc.mcerp.ErpMenus;
 import com.github.cocosoys.mc.mcerp.McerpExpansion;
 import com.github.cocosoys.mc.soyshttpovermc.api.SoysHttpOverMcApi;
+import org.bukkit.plugin.Plugin;
 import soys.soysgiftloft.SOYSGiftLoft;
+import soys.soysgiftloft.spring.controller.ErpConfigController;
 import soys.soysgiftloft.spring.controller.ErpGiftPackController;
 import soys.soysgiftloft.spring.controller.ErpGiftPlayerController;
+import soys.soysgiftloft.spring.impl.GiftLoftConfigServiceImpl;
 import soys.soysgiftloft.spring.impl.GiftLoftWebServiceImpl;
 import soys.soysgiftloft.spring.impl.GiftPackAdminServiceImpl;
+import soys.soysgiftloft.spring.service.GiftLoftConfigService;
 import soys.soysgiftloft.spring.service.GiftLoftWebService;
 import soys.soysgiftloft.spring.service.GiftPackAdminService;
 
@@ -27,20 +31,15 @@ import java.util.List;
  *       {@code ControllerPermScanner} 把 {@code @ApiPermission} 端点自动投影为 F 按钮。</li>
  * </ul>
  *
- * <p><b>页面归属</b>：ERP 管理面全局只发布一份前端 SPA——宿主插件
- * {@code SOYSHTTPOverMC-ERP} 托管的 dist（{@code /web/plugins/SOYSHTTPOverMC-ERP}），
- * 礼品阁页面（前端路由 {@code /giftloft/pack}）编译进同一 SPA。因此菜单 component 必须落在
- * 该 SPA 的 pageRoot 下（见 {@link #pageRoot()} / {@link #pageDirRoot()}）；若沿用父类按
- * identifier 推导会得到 {@code /web/plugins/SOYSGiftLoft-ERP}，该前缀不对应任何已加载插件名，
- * 托管侧不会伺服，菜单必然点不开。</p>
+ * <p><b>页面归属（自包含）</b>：前端 dist 由 owner 插件自己的网关扩展
+ * {@link SoysGiftLoftExpansion}（{@code resourceRoot=dist}）按 owner 插件名托管在
+ * {@code /web/plugins/SOYSGiftLoft}。本扩展<b>不</b>重复托管（{@link #resourceRoot()}
+ * 返回 null），只把菜单 component 指向该命名空间。框架默认 {@code pageRoot()} 取
+ * identifier（{@code SOYSGiftLoft-ERP}）会得到不存在的 {@code /web/plugins/SOYSGiftLoft-ERP}，
+ * 故覆写为 owner 插件名；{@code pageDirRoot} 沿用父类默认（pageRoot +
+ * {@code /soysgiftlofterp}），与前端 moduleRoot 顶层段对齐。</p>
  */
 public final class SoysGiftLoftErpExpansion extends McerpExpansion {
-
-    /**
-     * 前端 SPA 的宿主插件名：页面资源与路由都挂在这个命名空间下。
-     * 与 {@link #getIdentifier()}（ERP 模块 id）刻意分离——模块 id 只用于菜单/权限分组。
-     */
-    private static final String ERP_SPA_PLUGIN = "SOYSHTTPOverMC-ERP";
 
     private final SOYSGiftLoft plugin;
 
@@ -67,33 +66,29 @@ public final class SoysGiftLoftErpExpansion extends McerpExpansion {
     }
 
     /**
-     * 页面前缀 = 前端 SPA 的宿主命名空间（{@code /web/plugins/SOYSHTTPOverMC-ERP}）。
-     * 服务器可改 page 前缀（config.yml），故经 toolkit 求值，回退手写根路径。
+     * 页面前缀 = owner 插件自己的命名空间（{@code /web/plugins/SOYSGiftLoft}），
+     * 与 dist 托管路径一致。服务器可改 page 前缀（config.yml），故经 toolkit 求值。
      */
     @Override
     public String pageRoot() {
+        Plugin owner = getOwner();
+        String name = owner == null ? "SOYSGiftLoft" : owner.getName();
         SoysHttpOverMcApi api = getApi();
-        if (api == null) {
-            return "/web/plugins/" + ERP_SPA_PLUGIN;
-        }
-        String prefix = api.getToolkit().pageFullPrefix(ERP_SPA_PLUGIN);
+        String prefix = api == null ? null : api.getToolkit().pageFullPrefix(name);
         if (prefix == null || prefix.isEmpty()) {
-            return "/web/plugins/" + ERP_SPA_PLUGIN;
+            return "/web/plugins/" + name;
         }
         return prefix;
     }
 
-    /**
-     * 菜单 component 前缀：直接等于 pageRoot，<b>不追加</b> identifier 安全目录段。
-     *
-     * <p>父类会拼 {@code /<NameSafe(identifier)>}（如 {@code SOYSHTTPOverMC-ERP→soyshttpovermcerp}），
-     * 因为 ERP 宿主的前端路由顶层路径正是该段（{@code /soyshttpovermcerp/user}）；礼品阁的
-     * 前端路由没有这个段，component 需与其对齐为 {@code /giftloft/pack}。</p>
-     */
+    /** 不托管页面：dist 由网关扩展 {@link SoysGiftLoftExpansion} 统一托管，避免重复登记与 tag 分裂。 */
     @Override
-    public String pageDirRoot() {
-        return pageRoot();
+    protected String resourceRoot() {
+        return null;
     }
+
+    // pageDirRoot 沿用父类默认：pageRoot() + "/" + NameSafe.path(identifier)
+    // = /web/plugins/SOYSGiftLoft/soysgiftlofterp，与前端 moduleRoot 顶层段对齐。
 
     // ===== ERP 声明钩子 =====
 
@@ -118,20 +113,34 @@ public final class SoysGiftLoftErpExpansion extends McerpExpansion {
     }
 
     /**
-     * 菜单树。component 由 {@link #pageDirRoot()} 自动拼接，最终为
-     * {@code /web/plugins/SOYSHTTPOverMC-ERP/giftloft/pack}，与前端路由
-     * {@code /giftloft/pack}（views/giftloft/pack/index.vue）一一对应。
+     * 菜单树：根级叶子「礼包管理」+ 根级目录「插件配置」。
      *
-     * <p>只登记 SPA 里真实存在的页面：玩家查询（{@link ErpGiftPlayerController}）端点已注册、
-     * 可直连 {@code /api/plugins/SOYSGiftLoft/erp/player/*}，但前端尚无对应路由与页面，
-     * 故不挂菜单（挂上去必然 404）。等前端补 {@code views/giftloft/player} 与路由后再加回。</p>
+     * <p>MCERP 会把模块本身（{@link #displayName()} = 礼品阁）渲染成侧边栏一级节点，
+     * 模块的 children 即二级。</p>
+     *
+     * <p>① {@code menu("pack",…)} 是根级叶子，不写 component/path：component 由框架自动拼成
+     * {@code pageDirRoot + "/pack"} = {@code /web/plugins/SOYSGiftLoft/soysgiftlofterp/pack}，
+     * 与前端路由 {@code /soysgiftlofterp/pack} 同源。</p>
+     *
+     * <p>② {@code dir("config","插件配置")} 是根级 M 目录，其下叶子
+     * {@code menu("config","核心配置")} 的 component 自动拼成
+     * {@code pageDirRoot + "/config/config"} =
+     * {@code /web/plugins/SOYSGiftLoft/soysgiftlofterp/config/config}，
+     * 与前端路由 {@code /soysgiftlofterp/config/config} 同源。叶子带
+     * {@link ErpConfigController}，其三个端点自动投影为 F 按钮。</p>
+     *
+     * <p>玩家查询（{@link ErpGiftPlayerController}）端点已注册、可直连
+     * {@code /api/plugins/SOYSGiftLoft/erp/player/*}，但前端尚无对应路由与页面，
+     * 故不挂菜单（挂上去必然 404）。等前端补页面与路由后再加回。</p>
      */
     @Override
     protected ErpMenus menus() {
         return ErpMenus.create()
-                .dir("giftloft", "礼品阁", "gift", d -> d
-                        .menu("pack", "礼包管理", "list", ErpGiftPackController.class))
-                .orderNum(80);
+                .menu("pack", "礼包管理", "list", ErpGiftPackController.class)
+                .orderNum(1)
+                .dir("config", "插件配置", "edit", d -> d
+                        .menu("config", "核心配置", "input", ErpConfigController.class)
+                        .orderNum(10));
     }
 
     // ===== 端点注册（ERP 管理面） =====
@@ -141,9 +150,11 @@ public final class SoysGiftLoftErpExpansion extends McerpExpansion {
         if (controllers == null) {
             GiftLoftWebService service = new GiftLoftWebServiceImpl(plugin);
             GiftPackAdminService adminService = new GiftPackAdminServiceImpl(plugin, plugin.getManager());
+            GiftLoftConfigService configService = new GiftLoftConfigServiceImpl(plugin);
             controllers = new ArrayList<>();
             controllers.add(new ErpGiftPackController(service, adminService));
             controllers.add(new ErpGiftPlayerController(service));
+            controllers.add(new ErpConfigController(configService));
         }
         return controllers;
     }

@@ -72,7 +72,9 @@ storage:
 # 装有 MCERP 时另有 ERP 管理面 /api/plugins/SOYSGiftLoft/erp/*（SOYS 原生认证 + soysgiftloft.erp.* 权限）
 # ============================================
 web:
-  # 是否向 SOYSHTTPOverMC 注册管理接口端点，默认关闭（启用示例：改为 true）。
+  # 是否开放 Bearer 机器管理 API（/api/plugins/SOYSGiftLoft/*），默认关闭。
+  # 注意：前端页面托管 /web/plugins/SOYSGiftLoft 随 web/erp 任一开启而注册，
+  # 不受本开关限制；本开关只决定是否登记机器 API 端点。
   # 关闭时插件其余功能（指令/领取/存储）完全不受影响。
   enabled: false
   # API 访问令牌：所有机器管理接口请求需携带 Authorization: Bearer <api-token>
@@ -83,3 +85,15 @@ web:
   host: "127.0.0.1"
   port: 8317
   path-prefix: "/api"
+
+# ============================================
+# ERP 管理面（MCERP 中控后台的「礼品阁」菜单 + /api/plugins/SOYSGiftLoft/erp/*）
+# ----------------------------------------------------------------------------
+# 与上面的 web.enabled 相互独立：ERP 管理面走 SOYS 网关原生登录态
+# （复用 ERP 登录态 + soysgiftloft.erp.* 权限），不校验 api-token，
+# 因此不需要为了用 ERP 而对外开放 Bearer 机器接口。
+# 仅在装有 MCERP（且 SOYSHTTPOverMC 已启用）时生效；未装 MCERP 时此开关无副作用。
+# 关闭后：ERP 侧菜单与 /erp/* 端点一并摘除，指令/领取/存储不受影响。
+# ============================================
+erp:
+  enabled: true

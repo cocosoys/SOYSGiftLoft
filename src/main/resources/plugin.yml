@@ -58,6 +58,15 @@ permissions:
   soysgiftloft.erp.pack.remove:
     description: ERP-删除礼包
     default: op
+  soysgiftloft.erp.config.list:
+    description: ERP-查看插件配置清单
+    default: op
+  soysgiftloft.erp.config.query:
+    description: ERP-读取插件配置
+    default: op
+  soysgiftloft.erp.config.edit:
+    description: ERP-编辑插件配置
+    default: op
   soysgiftloft.erp.player.query:
     description: ERP-查询玩家领取状态
     default: op
