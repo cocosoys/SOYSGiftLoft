@@ -87,7 +87,7 @@
 #   COOLDOWN: 自定义冷却，配合 cooldown（秒）字段使用
 #
 #  ---- 领取特效（claim-effects，可选）----
-#   不配置则回退到 config.yml 的 general.default-claim-effects
+#   不配置该节则领取时不播放任何特效（不再有全局默认回退）
 #   sound          : 音效名（Sound 枚举名或自定义声音）
 #   volume/pitch   : 音量与音调
 #   particle       : 粒子枚举名

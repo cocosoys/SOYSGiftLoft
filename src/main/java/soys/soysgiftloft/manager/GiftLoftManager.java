@@ -379,13 +379,10 @@ public class GiftLoftManager {
     // ---------------- 领取特效与提示音 ----------------
 
     /**
-     * 播放该礼包的领取特效。优先使用礼包自身配置，缺省时回退到全局默认。
+     * 播放该礼包的领取特效。仅使用礼包自身配置；未配置 claim-effects 时不播放任何特效。
      */
     public void playClaimEffects(Player player, GiftPack pack) {
         GiftPack.ClaimEffects fx = pack.getClaimEffects();
-        if (fx == null) {
-            fx = getDefaultClaimEffects();
-        }
         if (fx == null) {
             return;
         }
@@ -419,32 +416,6 @@ public class GiftLoftManager {
                 Bukkit.broadcastMessage(msg);
             }
         }
-    }
-
-    private GiftPack.ClaimEffects cachedDefaultEffects = null;
-    private boolean defaultEffectsLoaded = false;
-
-    private GiftPack.ClaimEffects getDefaultClaimEffects() {
-        if (defaultEffectsLoaded) {
-            return cachedDefaultEffects;
-        }
-        defaultEffectsLoaded = true;
-        FileConfiguration cfg = plugin.getConfig();
-        if (cfg == null) {
-            return null;
-        }
-        ConfigurationSection sec = cfg.getConfigurationSection("general.default-claim-effects");
-        if (sec == null) {
-            return null;
-        }
-        cachedDefaultEffects = GiftPack.ClaimEffects.fromSection(sec);
-        return cachedDefaultEffects;
-    }
-
-    /** reload 时重置默认特效缓存，使配置变更生效。 */
-    public void invalidateDefaultEffects() {
-        cachedDefaultEffects = null;
-        defaultEffectsLoaded = false;
     }
 
     // ---------------- 自动解锁提示 ----------------

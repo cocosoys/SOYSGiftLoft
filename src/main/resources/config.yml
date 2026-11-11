@@ -12,20 +12,6 @@ general:
   # 自动检测礼包解锁并提示玩家（秒），0 关闭。
   # 开启后会按此间隔轮询在线玩家，新解锁且当前可领取的礼包会以私聊+标题提示（每个礼包仅提示一次）
   auto-notify: 0
-  # 领取特效全局默认（礼包自身未配置 claim-effects 时回退到此）。
-  # 留空 sound/particle 且 broadcast:false 则无任何效果。可被单个礼包的 claim-effects 覆盖。
-  default-claim-effects:
-    # 音效名：Sound 枚举名（如 ENTITY_PLAYER_LEVELUP）或自定义声音（资源包）
-    sound: "ENTITY_PLAYER_LEVELUP"
-    volume: 1.0
-    pitch: 1.0
-    # 粒子枚举名（如 FLAME / VILLAGER_HAPPY / SPELL_WITCH）
-    particle: "VILLAGER_HAPPY"
-    particle-count: 16
-    particle-spread: 0.5
-    particle-speed: 0.1
-    # 是否全服广播领取消息
-    broadcast: false
 
 storage:
   # 启用的后端按 priority 选主存储：MYSQL(30) > SQLITE(20) > YAML(10)
@@ -63,37 +49,3 @@ storage:
     auto-save-interval: 300
   # 启动时把 YAML 存量数据迁移进 MySQL（仅 MySQL 为主存储时生效）
   migrate-on-startup: true
-
-# ============================================
-# Web / 后台管理接口（v1.9.0 起经 SOYSHTTPOverMC 注解式 API 提供）
-# 端点统一落在 /api/plugins/SOYSGiftLoft/*（监听地址/端口/路径前缀由
-# SOYSHTTPOverMC 的配置统一管理，本插件不再自启 HttpServer）
-# 认证：Authorization: Bearer <api-token>（与 v1.8 一致，现有调用方零改动）
-# 装有 MCERP 时另有 ERP 管理面 /api/plugins/SOYSGiftLoft/erp/*（SOYS 原生认证 + soysgiftloft.erp.* 权限）
-# ============================================
-web:
-  # 是否开放 Bearer 机器管理 API（/api/plugins/SOYSGiftLoft/*），默认关闭。
-  # 注意：前端页面托管 /web/plugins/SOYSGiftLoft 随 web/erp 任一开启而注册，
-  # 不受本开关限制；本开关只决定是否登记机器 API 端点。
-  # 关闭时插件其余功能（指令/领取/存储）完全不受影响。
-  enabled: false
-  # API 访问令牌：所有机器管理接口请求需携带 Authorization: Bearer <api-token>
-  # 强烈建议修改为随机长字符串后再开放远程访问
-  api-token: "change-me"
-  # 以下为 v1.8 内置 HttpServer 遗留配置，现已由 SOYSHTTPOverMC 统一管理
-  # （保留仅为兼容旧配置文件，不再读取；监听/端口/前缀请配置 SOYSHTTPOverMC）
-  host: "127.0.0.1"
-  port: 8317
-  path-prefix: "/api"
-
-# ============================================
-# ERP 管理面（MCERP 中控后台的「礼品阁」菜单 + /api/plugins/SOYSGiftLoft/erp/*）
-# ----------------------------------------------------------------------------
-# 与上面的 web.enabled 相互独立：ERP 管理面走 SOYS 网关原生登录态
-# （复用 ERP 登录态 + soysgiftloft.erp.* 权限），不校验 api-token，
-# 因此不需要为了用 ERP 而对外开放 Bearer 机器接口。
-# 仅在装有 MCERP（且 SOYSHTTPOverMC 已启用）时生效；未装 MCERP 时此开关无副作用。
-# 关闭后：ERP 侧菜单与 /erp/* 端点一并摘除，指令/领取/存储不受影响。
-# ============================================
-erp:
-  enabled: true

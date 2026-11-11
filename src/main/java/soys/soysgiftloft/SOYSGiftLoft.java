@@ -38,11 +38,11 @@ import java.util.List;
  * （MYSQL &gt; SQLITE &gt; YAML），其余作为辅助存储被镜像写入；MySQL 不可用时自动降级。
  * 启动时若开启 migrate-on-startup，会把 YAML 存量数据迁移进 MySQL。</p>
  *
- * <p><b>Web 管理接口</b>：自 v1.9.0 起不再内置 HttpServer，改为声明 SOYSHTTPOverMC
- * 模块扩展（{@link SoysGiftLoftExpansion}），端点由网关统一挂在
- * {@code /api/plugins/SOYSGiftLoft/*}；装 MCERP 时另注册 {@link SoysGiftLoftErpExpansion}
- * 提供 ERP 菜单与 {@code /erp/*} 管理面端点。两者各有独立开关：机器 API 看
- * {@code web.enabled}（默认 false），ERP 管理面看 {@code erp.enabled}（默认 true）。</p>
+ * <p><b>Web / ERP</b>：自 v1.9.0 起不再内置 HttpServer，改为声明 SOYSHTTPOverMC
+ * 模块扩展。{@link SoysGiftLoftExpansion} 无条件托管自包含前端 {@code dist}
+ * （{@code /web/plugins/SOYSGiftLoft}）；装有 MCERP 时另注册
+ * {@link SoysGiftLoftErpExpansion} 提供 ERP 菜单与
+ * {@code /api/plugins/SOYSGiftLoft/erp/*} 管理面端点。两者均无常驻开关。</p>
  */
 public final class SOYSGiftLoft extends JavaPlugin implements Listener {
 
@@ -52,7 +52,7 @@ public final class SOYSGiftLoft extends JavaPlugin implements Listener {
     private ConfigManager configManager;
     private StorageManager storageManager;
 
-    /** SOYSHTTPOverMC 机器管理 API 扩展（/api/plugins/SOYSGiftLoft/*；未装 SOYS 时为 null）。 */
+    /** SOYSHTTPOverMC 前端页面托管扩展（/web/plugins/SOYSGiftLoft；网关未就绪时为 null）。 */
     private SoysGiftLoftExpansion soysExpansion;
 
     /** MCERP 管理面扩展（ERP 菜单 + /erp/* 端点；未装 MCERP 时为 null）。 */
@@ -147,7 +147,7 @@ public final class SOYSGiftLoft extends JavaPlugin implements Listener {
             getLogger().info("已启用自动解锁提示，间隔 " + configManager.getAutoNotify() + " 秒。");
         }
 
-        // 11. Web 管理接口 / ERP 管理面（两个独立开关：web.enabled 默认关、erp.enabled 默认开）
+        // 11. 前端页面托管 + ERP 管理面（均为常驻能力，无需配置开关）
         //     自 v1.9.0 起改为 SOYSHTTPOverMC 模块扩展注册，不再自建 HttpServer
         syncSoysModules();
 
@@ -246,101 +246,46 @@ public final class SOYSGiftLoft extends JavaPlugin implements Listener {
         } else if ("PlaceholderAPI".equals(name)) {
             setupPlaceholderAPI();
         } else if ("SOYSHTTPOverMC".equals(name) || "MCERP".equals(name)) {
-            // 网关 / ERP 晚于本插件启用：补挂 Web 管理接口与 ERP 管理面
+            // 网关 / ERP 晚于本插件启用：补挂页面托管与 ERP 管理面
             syncSoysModules();
         }
     }
 
-    // ---------------- Web 管理接口（SOYSHTTPOverMC / MCERP 扩展） ----------------
+    // ---------------- 页面托管 / ERP 管理面（SOYSHTTPOverMC / MCERP 扩展） ----------------
 
     /**
      * 同步 SOYS 侧模块注册状态（幂等，可重复调用；由启用、软依赖晚到、SoysReady、reload 共用）。
      *
-     * <p>两个模块各有独立开关，互不牵连：</p>
+     * <p>两项能力均为常驻，不设配置开关：</p>
      * <ul>
-     *   <li>{@code web.enabled}（默认 false）→ {@link SoysGiftLoftExpansion}，
-     *       机器管理 API {@code /api/plugins/SOYSGiftLoft/*}，凭 Bearer {@code api-token} 访问；</li>
-     *   <li>{@code erp.enabled}（默认 true）→ {@link SoysGiftLoftErpExpansion}，
-     *       MCERP 菜单「礼品阁」+ {@code /erp/*} 端点，走网关登录态 + {@code soysgiftloft.erp.*} 权限，
-     *       不校验 api-token。</li>
+     *   <li>{@link SoysGiftLoftExpansion}：无条件托管自包含前端 {@code dist}
+     *       （{@code /web/plugins/SOYSGiftLoft}）；</li>
+     *   <li>{@link SoysGiftLoftErpExpansion}：装有 MCERP 时注册菜单「礼品阁」
+     *       + {@code /erp/*} 端点，走网关登录态 + {@code soysgiftloft.erp.*} 权限。</li>
      * </ul>
      *
      * <p>共用唯一前置条件：SOYSHTTPOverMC 已启用（端点注册与页面托管都由它提供）。
      * 该前置缺失（本插件先于网关加载）时注册会失败，由 {@link #onSoysReady(SoysReadyEvent)} 重试。</p>
      */
     private void syncSoysModules() {
-        boolean web = configManager != null && configManager.isWebEnabled();
-        boolean erp = configManager != null && configManager.isErpEnabled();
-        if (!web && !erp) {
-            unregisterSoysExpansion();
-            unregisterErpExpansion();
-            return;
-        }
-        // 两个模块共用同一个前置条件：网关提供端点注册与页面托管
         if (!Bukkit.getPluginManager().isPluginEnabled("SOYSHTTPOverMC")) {
-            if (web) {
-                getLogger().warning("web.enabled=true 但未检测到 SOYSHTTPOverMC，机器管理接口未挂载"
-                        + "（安装该插件后执行 /sgiftloft reload 即可）。");
-            }
-            if (erp) {
-                getLogger().warning("erp.enabled=true 但未检测到 SOYSHTTPOverMC，MCERP 管理面未挂载"
-                        + "（安装该插件后执行 /sgiftloft reload 即可）。");
-            }
+            getLogger().warning("未检测到 SOYSHTTPOverMC，前端页面托管与 ERP 管理面未挂载"
+                    + "（安装该插件后执行 /sgiftloft reload 即可）。");
             return;
         }
-        // 基础扩展同时承担 dist 页面托管（ERP 前端依赖），故 web/erp 任一开启都必须注册；
-        // apiEnabled 只决定是否开放 Bearer 机器管理端点。
-        registerSoysExpansion(web);
-        if (erp) {
-            registerErpExpansion();
-        } else {
-            unregisterErpExpansion();
-        }
+        registerSoysExpansion();
+        registerErpExpansion();
     }
 
-    /** 摘除网关扩展（web/erp 均关闭时调用）：页面托管与机器 API 一并消失。 */
-    private void unregisterSoysExpansion() {
-        if (soysExpansion == null) {
-            return;
-        }
-        soysExpansion.unregister();
-        soysExpansion = null;
-        getLogger().info("网关扩展已摘除（web.enabled=false 且 erp.enabled=false）。");
-    }
-
-    /** 摘除 ERP 管理面扩展（erp.enabled 由开转关时调用）。 */
-    private void unregisterErpExpansion() {
-        if (erpExpansion == null) {
-            return;
-        }
-        erpExpansion.unregister();
-        erpExpansion = null;
-        getLogger().info("MCERP 管理面已摘除（erp.enabled=false）。");
-    }
-
-    /**
-     * 注册网关扩展（已按相同 API 开关注册则跳过）。
-     *
-     * <p>该扩展同时托管 {@code dist} 页面（ERP 前端依赖），因此 web/erp 任一开启都要注册；
-     * {@code apiEnabled} 仅决定是否登记 Bearer 机器管理端点。开关发生变化时需摘除重建，
-     * 避免缓存的控制器列表与当前开关不一致。</p>
-     */
-    private void registerSoysExpansion(boolean apiEnabled) {
-        if (soysExpansion != null && soysExpansion.isApiEnabled() == apiEnabled) {
-            return;
-        }
+    /** 注册网关扩展（已注册则跳过）：仅托管 dist 页面。 */
+    private void registerSoysExpansion() {
         if (soysExpansion != null) {
-            soysExpansion.unregister();
-            soysExpansion = null;
+            return;
         }
-        SoysGiftLoftExpansion expansion = new SoysGiftLoftExpansion(this, apiEnabled);
+        SoysGiftLoftExpansion expansion = new SoysGiftLoftExpansion(this);
         if (expansion.register()) {
             soysExpansion = expansion;
-            if (apiEnabled) {
-                getLogger().info("Web 管理接口已挂载：/api/plugins/SOYSGiftLoft/*（Bearer token 鉴权）。");
-            } else {
-                getLogger().info("前端页面托管已挂载：/web/plugins/SOYSGiftLoft（机器 API 未开放）。");
-            }
+            getLogger().info("前端页面托管已挂载：/web/plugins/SOYSGiftLoft。");
         } else {
             getLogger().warning("网关扩展注册失败（SOYS 网关未就绪或 identifier 冲突），"
                     + "将由 SoysReadyEvent 重试。");
@@ -359,10 +304,8 @@ public final class SOYSGiftLoft extends JavaPlugin implements Listener {
             return;
         }
         if (!Bukkit.getPluginManager().isPluginEnabled("MCERP")) {
-            if (configManager != null && configManager.isErpEnabled()) {
-                getLogger().warning("erp.enabled=true 但未检测到 MCERP，ERP 管理面未注册"
-                        + "（安装 MCERP 后执行 /sgiftloft reload 即可）。");
-            }
+            getLogger().warning("未检测到 MCERP，ERP 管理面未注册"
+                    + "（安装 MCERP 后执行 /sgiftloft reload 即可）。");
             return;
         }
         SoysGiftLoftErpExpansion expansion = new SoysGiftLoftErpExpansion(this);
@@ -517,9 +460,8 @@ public final class SOYSGiftLoft extends JavaPlugin implements Listener {
         messageLanguage = configManager.getLanguage();
         reloadMessages();
         reloadGiftPacks();
-        manager.invalidateDefaultEffects();
         manager.load();
-        // 两个模块按各自开关重新同步：由关转开补挂、由开转关摘除（token 变更被适配器实时读取，无需重注册）
+        // 网关 / ERP 晚到时由本处补挂（已注册则跳过）
         syncSoysModules();
     }
 

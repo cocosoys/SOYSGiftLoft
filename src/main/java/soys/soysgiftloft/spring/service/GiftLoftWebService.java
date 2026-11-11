@@ -4,18 +4,14 @@ import com.github.cocosoys.mc.soyshttpovermc.util.AjaxResult;
 import com.github.cocosoys.mc.soyshttpovermc.web.ApiRequestContext;
 
 /**
- * 礼品阁 Web 管理接口服务契约（SOYSHTTPOverMC 注解式 API 的业务面）。
+ * 礼品阁 ERP 管理面服务契约（SOYSHTTPOverMC 注解式 API 的业务面）。
  *
- * <p>本接口只声明<b>业务用例</b>，不持有认证职责：</p>
- * <ul>
- *   <li>机器管理 API（{@code /api/plugins/SOYSGiftLoft/*}，Bearer token）经
- *       {@link soys.soysgiftloft.spring.impl.TokenGuardedGiftLoftWebService} 装饰后注入控制器；</li>
- *   <li>ERP 管理面（{@code /api/plugins/SOYSGiftLoft/erp/*}）由网关原生认证 +
- *       {@code @ApiPermission} 权限节点把关，直接使用 {@code GiftLoftWebServiceImpl}。</li>
- * </ul>
+ * <p>本接口只声明<b>业务用例</b>，不持有认证职责：ERP 管理面
+ * （{@code /api/plugins/SOYSGiftLoft/erp/*}）由网关原生认证 +
+ * {@code @ApiPermission} 权限节点把关，直接使用 {@code GiftLoftWebServiceImpl}。</p>
  *
- * <p>{@code ctx} 参数为网关注入的请求上下文（传输层对象）：装饰器用于读取
- * {@code Authorization} 头完成 token 校验；业务实现体不依赖其内容（预留 IP/链路追踪日志）。</p>
+ * <p>{@code ctx} 参数为网关注入的请求上下文（传输层对象），业务实现体不依赖其内容
+ * （预留 IP/链路追踪日志）。</p>
  *
  * <p>返回体统一为 RuoYi 风格 {@link AjaxResult}（{@code {code,msg,data}}）；
  * 载荷字段序由各 VO 的 getter 声明序决定（对齐 v1.8 手写键序）。</p>
@@ -38,7 +34,7 @@ public interface GiftLoftWebService {
     AjaxResult playerByUuid(ApiRequestContext ctx, String uuid);
 
     /**
-     * POST /player/{name}/give —— 发放礼包（机器 API 形态）。
+     * POST /player/{name}/give —— 发放礼包（表单体兼容形态）。
      * 请求体为 {@code application/x-www-form-urlencoded}（{@code pack=<id>[&force=true]}），
      * 亦容忍 JSON 对象体；玩家需在线。
      */
@@ -50,7 +46,7 @@ public interface GiftLoftWebService {
     AjaxResult give(ApiRequestContext ctx, String name, String packId, boolean force);
 
     /**
-     * POST /reset —— 重置领取状态（机器 API 形态）。
+     * POST /reset —— 重置领取状态（表单体兼容形态）。
      * 请求体表单 {@code player=<name|uuid>&pack=<id>}，亦容忍 JSON 对象体。
      */
     AjaxResult reset(ApiRequestContext ctx, String body);

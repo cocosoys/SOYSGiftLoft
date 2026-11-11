@@ -21,12 +21,12 @@ import java.util.List;
 /**
  * 礼品阁的 MCERP 管理面接入（ERP 侧端点 + 菜单登记）。
  *
- * <p>与机器管理 API 扩展（{@link SoysGiftLoftExpansion}）的分工：</p>
+ * <p>与页面托管扩展（{@link SoysGiftLoftExpansion}）的分工：</p>
  * <ul>
  *   <li>本扩展仅在服务器装有 MCERP 时由主类实例化并注册（未装则礼品阁独立运行）；</li>
- *   <li>端点同样落在 {@code /api/plugins/SOYSGiftLoft/erp/*}（owner 插件名决定前缀，
- *       与 identifier 无关），但<b>不走</b> Bearer token——采用 SOYS 网关原生认证
- *       （ERP 前端登录态）+ {@code soysgiftloft.erp.*} 权限镜像；</li>
+ *   <li>端点落在 {@code /api/plugins/SOYSGiftLoft/erp/*}（owner 插件名决定前缀，
+ *       与 identifier 无关），采用 SOYS 网关原生认证（ERP 前端登录态）
+ *       + {@code soysgiftloft.erp.*} 权限镜像；</li>
  *   <li>{@link #menus()} 声明 ERP 菜单树，{@code menu(..., Controller.class)} 由
  *       {@code ControllerPermScanner} 把 {@code @ApiPermission} 端点自动投影为 F 按钮。</li>
  * </ul>

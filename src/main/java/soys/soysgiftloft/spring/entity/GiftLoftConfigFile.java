@@ -12,7 +12,7 @@ package soys.soysgiftloft.spring.entity;
 public enum GiftLoftConfigFile {
 
     CONFIG("config", "核心配置", "config.yml",
-            "通用开关、领取特效、存储后端、Web/ERP 管理面等");
+            "通用开关、存储后端等");
 
     private final String id;
     private final String name;

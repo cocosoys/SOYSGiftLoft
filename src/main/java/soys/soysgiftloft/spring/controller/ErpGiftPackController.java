@@ -15,7 +15,7 @@ import soys.soysgiftloft.spring.service.GiftLoftWebService;
 /**
  * ERP 管理面 —— 礼包查询与配置管理（MCERP 菜单「礼品阁 → 礼包管理」后端）。
  *
- * <p>与机器管理 API 的差异：</p>
+ * <p>认证与授权模型：</p>
  * <ul>
  *   <li>认证走 SOYS 网关原生体系（ERP 前端经 {@code /api/auth/login} 获得的令牌 / Cookie），
  *       端点<b>不</b>加 {@code @Anonymous}——无凭证请求被网关认证门 401 拒绝；</li>
@@ -47,8 +47,7 @@ public class ErpGiftPackController {
     @ApiPermission("soysgiftloft.erp.pack.query")
     @GetMapping("/erp/pack/{id}")
     public AjaxResult packDetail(ApiRequestContext ctx, @PathVariable(name = "id") String id) {
-        // 返回完整 GiftPackSaveVO（与 writePack 镜像），供 ERP 编辑页回显不丢字段；
-        // 机器 API /pack/{id} 仍走 queryService.packDetail（PackDetailVO 摘要），契约不变。
+        // 返回完整 GiftPackSaveVO（与 writePack 镜像），供 ERP 编辑页回显不丢字段。
         GiftPackSaveVO vo = adminService.readPack(id);
         return vo == null ? AjaxResult.notFound("礼包不存在: " + id) : AjaxResult.success(vo);
     }
