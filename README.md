@@ -411,8 +411,8 @@ mvn clean package -DskipTests
 ## 版本历史
 
 ### v1.9.0 — SOYSHTTPOverMC 网关接入 + ERP 管理面
-- Web 接口层改造为 **SOYSHTTPOverMC 注解式 API 网关**：退役内置 JDK HttpServer（`web` 包删除），端点迁移到 `/api/plugins/SOYSGiftLoft/*`
-- 机器 API 令牌守卫（C-secure）：优先委托网关凭证校验，v1.8 `web.api-token` Bearer 兜底，现有调用方零改动
+- Web 接口层改造为 **SOYSHTTPOverMC 注解式 API 网关**：退役内置 JDK HttpServer（`web` 包删除）；管理端点统一走网关 `/api/plugins/SOYSGiftLoft/erp/*`（ERP 管理面），不再独立开放机器 API
+- 机器 API 已退役（配置精简）：删除 4 个机器侧控制器与 `TokenGuardedGiftLoftWebService`，`GiftLoftWebService` / `GiftLoftWebServiceImpl` 仅作为 ERP 控制器的共享业务层保留
 - 接入 MCERP 管理面：注册「礼品阁」菜单与 `/erp/*` 端点，走 SOYS 原生登录态 + `soysgiftloft.erp.*` 权限镜像（`@ApiPermission` 自动投影 F 按钮）
 - 响应契约由 `{success,data}` 迁移为 RuoYi 风格 `{code,msg,data}`（VO 字段序对齐旧序以保兼容）
 - 多语言体系迁移：`lang/` → `language/zh_cn.yml` + `language/en_us.yml`，i18n 键加 `soysgiftloft.` 前缀
